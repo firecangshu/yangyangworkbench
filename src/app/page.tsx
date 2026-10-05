@@ -156,24 +156,30 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Hero：问候 + 实时时钟 */}
-      <div className="flex flex-col gap-4 rounded-xl bg-sidebar p-6 text-sidebar-fg sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="text-2xl font-semibold">{greeting}{greeting ? "，" : ""}这里是杨杨的AI比赛专用工作台</div>
-          <p className="mt-1 text-sm text-sidebar-fg/70">连接本地内容与各种程序之间的桥梁</p>
-          <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-            <span className="rounded-full bg-brand px-2.5 py-1 text-white">临近比赛 {nearCount} 场（7 天内）</span>
-            <span className="rounded-full bg-white/10 px-2.5 py-1">自动备份每日 21:00{latestBackup ? ` · 最新 ${latestBackup}` : ""}</span>
-            <span className="rounded-full bg-white/10 px-2.5 py-1">晨报每日 8:30</span>
+      {/* Hero：问候 + 实时时钟 + 内嵌月历（日历融入首卡，今日枢纽） */}
+      <div className="rounded-xl bg-sidebar p-6 text-sidebar-fg">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-2xl font-semibold">{greeting}{greeting ? "，" : ""}这里是杨杨的AI比赛专用工作台</div>
+            <p className="mt-1 text-sm text-sidebar-fg/70">连接本地内容与各种程序之间的桥梁</p>
+            <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+              <span className="rounded-full bg-brand px-2.5 py-1 text-white">临近比赛 {nearCount} 场（7 天内）</span>
+              <span className="rounded-full bg-white/10 px-2.5 py-1">自动备份每日 21:00{latestBackup ? ` · 最新 ${latestBackup}` : ""}</span>
+              <span className="rounded-full bg-white/10 px-2.5 py-1">晨报每日 8:30</span>
+            </div>
+          </div>
+          <div className="shrink-0 text-left sm:text-right">
+            <div className="font-mono text-4xl font-semibold tracking-wider">{clock}</div>
+            <div className="mt-1 text-sm text-sidebar-fg/70">{dateText}</div>
+            <button onClick={() => window.dispatchEvent(new Event("open-assistant"))}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-medium text-white hover:opacity-90">
+              🤖 问问 AI 助手
+            </button>
           </div>
         </div>
-        <div className="shrink-0 text-left sm:text-right">
-          <div className="font-mono text-4xl font-semibold tracking-wider">{clock}</div>
-          <div className="mt-1 text-sm text-sidebar-fg/70">{dateText}</div>
-          <button onClick={() => window.dispatchEvent(new Event("open-assistant"))}
-            className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-medium text-white hover:opacity-90">
-            🤖 问问 AI 助手
-          </button>
+        {/* 内嵌月历：白色面板浮于墨蓝之上，与首卡融为一体（节气/节日/农历/赛事标注与今天实心赤陶块均保留） */}
+        <div className="mt-5">
+          <MonthCalendar contests={contests} onPickDay={() => {}} />
         </div>
       </div>
 
@@ -259,13 +265,8 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* 三栏：月历 / 常用程序 / 最近动态 */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-xl border bg-white p-4">
-          <div className="mb-3 text-sm font-medium text-slate-600">日历</div>
-          <MonthCalendar contests={contests} onPickDay={() => {}} />
-        </div>
-
+      {/* 两栏：常用程序 / 最近动态（月历已上移融入 Hero 首卡） */}
+      <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-xl border bg-white p-4">
           <div className="mb-3 flex items-center justify-between">
             <span className="text-sm font-medium text-slate-600">常用程序 Top6</span>
