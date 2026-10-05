@@ -1,14 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CONTEST_STATUS_LABELS, daysUntil } from "@/lib/constants";
+import { MonthCalendar } from "@/components/MonthCalendar";
+import { GanttView } from "@/components/GanttView";
 
 type Project = { id: number; name: string; status: string };
-type ContestBrief = {
-  id: number; name: string; deadline: string; status: string;
-  deliverables: { done: boolean }[];
+type Deliverable = { id: number; contestId: number; name: string; done: boolean; doneAt: string | null };
+type Contest = {
+  id: number; name: string; organizer: string; track: string; startDate: string;
+  deadline: string; status: string; submitLink: string; notes: string; updatedAt: string;
+  deliverables: Deliverable[];
+  links: { id: number; project: { id: number; name: string; status: string; path: string } }[];
 };
+type Connection = { id: number; toolName: string; launchCommand: string; lastUsedAt: string | null };
+type EventRow = { id: number; ts: string; entityType: string; entityId: number; action: string; afterJson: string };
 
 const STATUS_LABELS: Record<string, string> = {
   incubating: "孵化中", dev: "开发中", submitted: "已提交", maintain: "维护中", done: "完结",
@@ -23,6 +30,15 @@ const STATUS_ICONS: Record<string, string> = {
 };
 
 const FOLDER_ICON = "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z";
+
+const ET_LABEL: Record<string, string> = {
+  project: "项目", contest: "比赛", deliverable: "交付物", connection: "工具卡",
+  connection_account: "账号", contest_project: "关联", sop_template: "SOP模板", backup: "备份",
+};
+const ACT_LABEL: Record<string, string> = {
+  create: "创建", update: "更新", delete: "删除", launch: "启动",
+  apply_sop: "套用 SOP", credential_open: "定位凭据", import_jubao: "聚宝盆导入",
+};
 
 function Icon({ d, size = "h-5 w-5" }: { d: string; size?: string }) {
   return (
@@ -49,38 +65,94 @@ function Kpi({ label, value, icon, brand = false }: { label: string; value: numb
   );
 }
 
+function eventText(e: EventRow) {
+  const name = (() => { try { const j = JSON.parse(e.afterJson || "{}"); return j.name ?? j.label ?? j.sopName ?? j.toolName ?? ""; } catch { return ""; } })();
+  const act = ACT_LABEL[e.action] ?? e.action;
+  const et = ET_LABEL[e.entityType] ?? e.entityType;
+  return name ? `${et}「${name}」${act}` : `${et} ${act}`;
+}
+
 export default function Dashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [contests, setContests] = useState<ContestBrief[]>([]);
+  const [contests, setContests] = useState<Contest[]>([]);
+  const [connections, setConnections] = useState<Connection[]>([]);
+  const [events, setEvents] = useState<EventRow[]>([]);
+  const [latestBackup, setLatestBackup] = useState("");
+  const [now, setNow] = useState<Date | null>(null);
+  const [matchView, setMatchView] = useState<"list" | "gantt">("list");
+  const [busyConn, setBusyConn] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch("/api/projects").then((r) => r.json()).then(setProjects);
-    fetch("/api/contests").then((r) => r.json()).then(setContests);
+    setNow(new Date());
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
   }, []);
+
+  const load = useCallback(() => {
+    fetch("/api/contests").then((r) => r.json()).then(setContests);
+    fetch("/api/projects").then((r) => r.json()).then(setProjects);
+    fetch("/api/connections").then((r) => r.json()).then(setConnections);
+    fetch("/api/events").then((r) => r.json()).then(setEvents);
+    fetch("/api/backup").then((r) => r.json()).then((b) => {
+      const auto = Array.isArray(b) ? b.filter((x: { dirName: string }) => x.dirName.startsWith("auto-")) : [];
+      setLatestBackup(auto[0]?.dirName?.replace("auto-", "") ?? "");
+    });
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  async function launchConn(c: Connection) {
+    setBusyConn(c.id);
+    await fetch(`/api/connections/${c.id}/launch`, { method: "POST" });
+    setBusyConn(null);
+    load();
+  }
 
   const byStatus = projects.reduce<Record<string, number>>((acc, p) => {
     acc[p.status] = (acc[p.status] ?? 0) + 1;
     return acc;
   }, {});
 
-  const upcoming = [...contests]
-    .filter((c) => !["won", "lost", "cancelled"].includes(c.status))
-    .map((c) => ({ ...c, days: daysUntil(c.deadline) }))
-    .sort((a, b) => {
-      if (a.days === null && b.days === null) return 0;
-      if (a.days === null) return 1;
-      if (b.days === null) return -1;
-      return a.days - b.days;
-    })
-    .slice(0, 3);
+  const allMatches = [...contests].sort((a, b) => {
+    const da = daysUntil(a.deadline), db = daysUntil(b.deadline);
+    if (da === null && db === null) return 0;
+    if (da === null) return 1;
+    if (db === null) return -1;
+    return da - db;
+  });
+  const nearCount = allMatches.filter((c) => {
+    const d = daysUntil(c.deadline);
+    return d !== null && d >= 0 && d <= 7;
+  }).length;
+
+  const topPrograms = [...connections]
+    .sort((a, b) => (b.lastUsedAt ?? "").localeCompare(a.lastUsedAt ?? ""))
+    .slice(0, 6);
+  const recentEvents = events.slice(0, 8);
+
+  const greeting = !now ? "" : now.getHours() < 6 ? "夜深了" : now.getHours() < 12 ? "早上好" : now.getHours() < 18 ? "下午好" : "晚上好";
+  const clock = now ? now.toLocaleTimeString("zh-CN", { hour12: false }) : "--:--:--";
+  const dateText = now ? now.toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric", weekday: "long" }) : "";
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">仪表盘</h1>
-        <p className="mt-1 text-sm text-slate-500">tagex M14 · 本地优先 · 数据存于本机 SQLite</p>
+      {/* Hero：问候 + 实时时钟 */}
+      <div className="flex flex-col gap-4 rounded-xl bg-sidebar p-6 text-sidebar-fg sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="text-2xl font-semibold">{greeting}{greeting ? "，" : ""}这里是 tagex 的工作台</div>
+          <p className="mt-1 text-sm text-sidebar-fg/70">连接本地内容与各种程序之间的桥梁</p>
+          <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+            <span className="rounded-full bg-brand px-2.5 py-1 text-white">临近比赛 {nearCount} 场（7 天内）</span>
+            <span className="rounded-full bg-white/10 px-2.5 py-1">自动备份每日 21:00{latestBackup ? ` · 最新 ${latestBackup}` : ""}</span>
+            <span className="rounded-full bg-white/10 px-2.5 py-1">晨报每日 8:30</span>
+          </div>
+        </div>
+        <div className="shrink-0 text-left sm:text-right">
+          <div className="font-mono text-4xl font-semibold tracking-wider">{clock}</div>
+          <div className="mt-1 text-sm text-sidebar-fg/70">{dateText}</div>
+        </div>
       </div>
 
+      {/* KPI 行 */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <Kpi label="已登记项目" value={projects.length} icon={FOLDER_ICON} brand />
         {Object.entries(STATUS_LABELS).map(([k, label]) => (
@@ -88,56 +160,118 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border bg-white p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-600">比赛倒计时 TOP3</span>
-            <Link href="/contests" className="text-xs text-blue-600 hover:underline">全部 →</Link>
+      {/* 赛事总览：全部比赛，可切甘特 */}
+      <div className="rounded-xl border bg-white p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <span className="text-sm font-medium text-slate-600">赛事总览（{contests.length} 场）</span>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-lg border p-0.5">
+              <button onClick={() => setMatchView("list")}
+                className={`rounded-md px-2.5 py-1 text-xs ${matchView === "list" ? "bg-brand text-white" : "text-slate-600"}`}>列表</button>
+              <button onClick={() => setMatchView("gantt")}
+                className={`rounded-md px-2.5 py-1 text-xs ${matchView === "gantt" ? "bg-brand text-white" : "text-slate-600"}`}>甘特</button>
+            </div>
+            <Link href="/contests" className="text-xs text-blue-600 hover:underline">管理 →</Link>
           </div>
+        </div>
+        {matchView === "gantt" ? (
+          <GanttView contests={contests} />
+        ) : (
           <ul className="divide-y">
-            {upcoming.map((c) => {
+            {allMatches.map((c) => {
               const done = c.deliverables.filter((d) => d.done).length;
+              const days = daysUntil(c.deadline);
               return (
-                <li key={c.id} className="flex items-center justify-between py-2.5 text-sm">
-                  <div className="min-w-0">
-                    <div className="truncate font-medium">{c.name}</div>
-                    <div className="mt-0.5 text-xs text-slate-400">
+                <li key={c.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="truncate font-medium">{c.name}</span>
+                    <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">
                       {CONTEST_STATUS_LABELS[c.status] ?? c.status}
-                      {c.deliverables.length > 0 && ` · 交付 ${done}/${c.deliverables.length}`}
-                    </div>
+                    </span>
                   </div>
-                  <div className="shrink-0 pl-3 text-right">
-                    <div className={`text-sm font-semibold ${c.days !== null && c.days <= 7 ? "text-red-600" : "text-blue-600"}`}>
-                      {c.days === null ? "待定" : c.days < 0 ? `过期${-c.days}天` : `${c.days} 天`}
-                    </div>
-                    <div className="text-xs text-slate-400">{c.deadline || "—"}</div>
+                  <div className="flex shrink-0 items-center gap-3 text-xs text-slate-400">
+                    {c.deliverables.length > 0 && <span>交付 {done}/{c.deliverables.length}</span>}
+                    <span className={`font-semibold ${days !== null && days < 0 ? "text-slate-400" : days !== null && days <= 7 ? "text-red-600" : "text-blue-600"}`}>
+                      {days === null ? "待定" : days < 0 ? `过期${-days}天` : `剩 ${days} 天`}
+                    </span>
+                    <span>{c.deadline || "—"}</span>
                   </div>
                 </li>
               );
             })}
-            {upcoming.length === 0 && (
-              <li className="py-4 text-sm text-slate-400">暂无进行中的比赛</li>
-            )}
+            {allMatches.length === 0 && <li className="py-4 text-sm text-slate-400">暂无比赛</li>}
+          </ul>
+        )}
+      </div>
+
+      {/* 三栏：月历 / 常用程序 / 最近动态 */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="rounded-xl border bg-white p-4">
+          <div className="mb-3 text-sm font-medium text-slate-600">日历</div>
+          <MonthCalendar contests={contests} onPickDay={() => {}} />
+        </div>
+
+        <div className="rounded-xl border bg-white p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-sm font-medium text-slate-600">常用程序 Top6</span>
+            <Link href="/connections" className="text-xs text-blue-600 hover:underline">全部 →</Link>
+          </div>
+          <ul className="space-y-1.5">
+            {topPrograms.map((c, i) => (
+              <li key={c.id} className="flex items-center gap-2 rounded-md bg-slate-50 px-2 py-1.5 text-sm">
+                <span className="w-4 shrink-0 text-center text-xs font-semibold text-slate-300">{i + 1}</span>
+                <span className="min-w-0 flex-1 truncate">{c.toolName}</span>
+                <span className="shrink-0 text-[10px] text-slate-400">
+                  {c.lastUsedAt ? new Date(c.lastUsedAt).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" }) : "未用"}
+                </span>
+                {c.launchCommand && (
+                  <button onClick={() => launchConn(c)} disabled={busyConn === c.id}
+                    title="一键调起"
+                    className="shrink-0 rounded bg-brand px-1.5 py-0.5 text-[10px] text-white hover:opacity-90 disabled:opacity-50">▶</button>
+                )}
+              </li>
+            ))}
+            {topPrograms.length === 0 && <li className="py-4 text-sm text-slate-400">暂无工具卡</li>}
           </ul>
         </div>
 
         <div className="rounded-xl border bg-white p-4">
           <div className="mb-3 flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-600">最近更新的项目</span>
-            <Link href="/projects" className="text-xs text-blue-600 hover:underline">全部 →</Link>
+            <span className="text-sm font-medium text-slate-600">最近动态</span>
+            <Link href="/log" className="text-xs text-blue-600 hover:underline">全部 →</Link>
           </div>
-          <ul className="divide-y">
-            {projects.slice(0, 5).map((p) => (
-              <li key={p.id} className="flex items-center justify-between py-2 text-sm">
-                <span className="truncate">{p.name}</span>
-                <span className="shrink-0 pl-2 text-xs text-slate-400">{STATUS_LABELS[p.status] ?? p.status}</span>
+          <ul className="space-y-2">
+            {recentEvents.map((e) => (
+              <li key={e.id} className="flex items-start gap-2 text-xs">
+                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-brand"></span>
+                <span className="min-w-0 flex-1 truncate text-slate-600">{eventText(e)}</span>
+                <span className="shrink-0 text-slate-300">
+                  {new Date(e.ts).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" })}
+                </span>
               </li>
             ))}
-            {projects.length === 0 && (
-              <li className="py-4 text-sm text-slate-400">暂无数据，去「项目中枢」注册第一个项目</li>
-            )}
+            {recentEvents.length === 0 && <li className="py-4 text-sm text-slate-400">暂无动态</li>}
           </ul>
         </div>
+      </div>
+
+      {/* 项目进展 */}
+      <div className="rounded-xl border bg-white p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <span className="text-sm font-medium text-slate-600">项目进展（最近更新）</span>
+          <Link href="/projects" className="text-xs text-blue-600 hover:underline">全部 →</Link>
+        </div>
+        <ul className="divide-y">
+          {projects.slice(0, 5).map((p) => (
+            <li key={p.id} className="flex items-center justify-between py-2 text-sm">
+              <span className="truncate font-medium">{p.name}</span>
+              <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">{STATUS_LABELS[p.status] ?? p.status}</span>
+            </li>
+          ))}
+          {projects.length === 0 && (
+            <li className="py-4 text-sm text-slate-400">暂无数据，去「项目中枢」注册第一个项目</li>
+          )}
+        </ul>
       </div>
     </div>
   );
