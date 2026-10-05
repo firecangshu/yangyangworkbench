@@ -1,0 +1,11 @@
+﻿import { readFileSync } from "fs";
+const st = JSON.parse(readFileSync("E:/3.赛博聚宝盆/asset-registry/data/state.json", "utf-8"));
+const assets = st.assets;
+console.log("assets 类型:", typeof assets, Array.isArray(assets) ? "(数组)" : "(对象)");
+const keys = Object.keys(assets);
+console.log("条目数:", keys.length);
+console.log("前 8 个 key:", keys.slice(0, 8).join(" | "));
+const firstKey = keys[0];
+const first = assets[firstKey];
+console.log("\n首个条目字段:", Object.keys(first).join(", "));
+console.log(JSON.stringify(first, null, 2).slice(0, 800));

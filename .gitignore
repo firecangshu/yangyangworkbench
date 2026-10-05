@@ -1,0 +1,21 @@
+node_modules/
+.next/
+*.db
+*.db-journal
+.env.local
+.DS_Store
+next-env.d.ts
+
+# 雀台追加（红线：凭据不入库——git 仓库也是库；数据由 backups 体系负责）
+credentials/
+backups/
+dev.log
+scripts/.launch-queue
+scripts/.launch-queue.lock
+scripts/.deadline-state.json
+*.tsbuildinfo
+Thumbs.db
+
+# env 与安全工具内部状态
+.env
+.mimosa/

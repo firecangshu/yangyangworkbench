@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id        Int      @id @default(autoincrement())
+  name      String
+  path      String
+  category  String   @default("other")
+  status    String   @default("incubating")
+  summary   String   @default("")
+  tags      String   @default("")
+  lastNote  String   @default("") @map("last_note")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  contestLinks ContestProject[]
+}
+
+model Contest {
+  id          Int      @id @default(autoincrement())
+  name        String
+  organizer   String   @default("")
+  track       String   @default("")
+  startDate   String   @default("") @map("start_date")
+  deadline    String   @default("")
+  status      String   @default("research")
+  submitLink  String   @default("") @map("submit_link")
+  notes       String   @default("")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deliverables Deliverable[]
+  links        ContestProject[]
+}
+
+model Deliverable {
+  id        Int       @id @default(autoincrement())
+  contestId Int       @map("contest_id")
+  name      String
+  done      Boolean   @default(false)
+  doneAt    DateTime? @map("done_at")
+  contest   Contest   @relation(fields: [contestId], references: [id], onDelete: Cascade)
+}
+
+model ContestProject {
+  id        Int     @id @default(autoincrement())
+  contestId Int     @map("contest_id")
+  projectId Int     @map("project_id")
+  contest   Contest @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@unique([contestId, projectId])
+}
+
+model Connection {
+  id            Int       @id @default(autoincrement())
+  toolName      String    @map("tool_name")
+  category      String    @default("other")
+  entryUrl      String    @default("") @map("entry_url")
+  accountNotes  String    @default("") @map("account_notes")
+  credentialRef String    @default("") @map("credential_ref")
+  launchCommand String    @default("") @map("launch_command")
+  status        String    @default("active")
+  tags          String    @default("")
+  notes         String    @default("")
+  lastUsedAt    DateTime? @map("last_used_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  accounts      ConnectionAccount[]
+}
+
+model ConnectionAccount {
+  id            Int        @id @default(autoincrement())
+  connectionId  Int        @map("connection_id")
+  label         String
+  launchCommand String     @default("") @map("launch_command")
+  notes         String     @default("")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  connection    Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+}
+
+model SopTemplate {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String    @default("")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  steps       SopStep[]
+}
+
+model SopStep {
+  id         Int         @id @default(autoincrement())
+  templateId Int         @map("template_id")
+  name       String
+  sortOrder  Int         @default(0) @map("sort_order")
+  template   SopTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+}
+
+model EventLog {
+  id         Int      @id @default(autoincrement())
+  ts         DateTime @default(now())
+  entityType String   @map("entity_type")
+  entityId   Int      @map("entity_id")
+  action     String
+  beforeJson String   @default("{}") @map("before_json")
+  afterJson  String   @default("{}") @map("after_json")
+}

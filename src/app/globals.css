@@ -1,0 +1,195 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --ink: #1a2332;
+  --muted: #6b7688;
+  --line: #e5e9f0;
+  --accent: #2563eb;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+
+/* ============ 主题：护院鹅深绿（路演基准） ============ */
+[data-theme="goose"] body {
+  background: linear-gradient(160deg, #07150e 0%, #0c2418 45%, #0a1f14 100%);
+  color: #e8f5ec;
+}
+[data-theme="goose"] header,
+[data-theme="goose"] .bg-white {
+  background: rgba(13, 36, 24, 0.92) !important;
+  border-color: rgba(110, 231, 168, 0.15) !important;
+}
+[data-theme="goose"] .text-slate-500,
+[data-theme="goose"] .text-slate-400,
+[data-theme="goose"] .text-slate-600 {
+  color: rgba(200, 230, 210, 0.65) !important;
+}
+[data-theme="goose"] .text-slate-300 { color: rgba(200, 230, 210, 0.35) !important; }
+[data-theme="goose"] .border,
+[data-theme="goose"] table,
+[data-theme="goose"] .divide-y > * {
+  border-color: rgba(110, 231, 168, 0.14) !important;
+}
+[data-theme="goose"] .bg-slate-50,
+[data-theme="goose"] .bg-slate-100\/70,
+[data-theme="goose"] .bg-slate-100 {
+  background: rgba(110, 231, 168, 0.06) !important;
+}
+[data-theme="goose"] .bg-blue-600,
+[data-theme="goose"] .bg-blue-700,
+[data-theme="goose"] .bg-slate-900,
+[data-theme="goose"] button.bg-blue-600 {
+  background: linear-gradient(135deg, #1a7a4a, #14663c) !important;
+}
+[data-theme="goose"] .text-blue-600,
+[data-theme="goose"] .text-blue-700 { color: #6ee7a8 !important; }
+[data-theme="goose"] .bg-blue-50 { background: rgba(110, 231, 168, 0.12) !important; }
+[data-theme="goose"] .bg-emerald-50 { background: rgba(110, 231, 168, 0.1) !important; }
+[data-theme="goose"] .text-emerald-700 { color: #6ee7a8 !important; }
+[data-theme="goose"] .bg-amber-50 { background: rgba(212, 168, 67, 0.12) !important; }
+[data-theme="goose"] .text-amber-700 { color: #d4a843 !important; }
+[data-theme="goose"] .bg-amber-100 { background: rgba(212, 168, 67, 0.2) !important; }
+[data-theme="goose"] .text-amber-800 { color: #e8c876 !important; }
+[data-theme="goose"] pre.bg-slate-900 { background: rgba(0, 0, 0, 0.45) !important; }
+[data-theme="goose"] thead.bg-slate-50 { background: rgba(110, 231, 168, 0.06) !important; }
+[data-theme="goose"] .bg-purple-50 { background: rgba(216, 180, 254, 0.1) !important; }
+[data-theme="goose"] .text-purple-700 { color: #d8b4fe !important; }
+[data-theme="goose"] .bg-sky-50 { background: rgba(125, 211, 252, 0.1) !important; }
+[data-theme="goose"] .text-sky-700 { color: #7dd3fc !important; }
+
+/* ============ 主题：墨蓝夜航 ============ */
+[data-theme="ink"] body {
+  background: linear-gradient(180deg, #070b14 0%, #0b1220 50%, #0a1020 100%);
+  color: #dde5f2;
+}
+[data-theme="ink"] header,
+[data-theme="ink"] .bg-white {
+  background: rgba(15, 23, 42, 0.94) !important;
+  border-color: rgba(56, 189, 248, 0.14) !important;
+}
+[data-theme="ink"] .text-slate-500,
+[data-theme="ink"] .text-slate-400,
+[data-theme="ink"] .text-slate-600 {
+  color: rgba(148, 163, 184, 0.8) !important;
+}
+[data-theme="ink"] .text-slate-300 { color: rgba(148, 163, 184, 0.4) !important; }
+[data-theme="ink"] .border,
+[data-theme="ink"] table,
+[data-theme="ink"] .divide-y > * {
+  border-color: rgba(56, 189, 248, 0.12) !important;
+}
+[data-theme="ink"] .bg-slate-50,
+[data-theme="ink"] .bg-slate-100 {
+  background: rgba(56, 189, 248, 0.06) !important;
+}
+[data-theme="ink"] .bg-blue-600,
+[data-theme="ink"] .bg-slate-900 {
+  background: linear-gradient(135deg, #0369a1, #0c4a6e) !important;
+}
+[data-theme="ink"] .text-blue-600,
+[data-theme="ink"] .text-blue-700 { color: #38bdf8 !important; }
+[data-theme="ink"] .bg-blue-50 { background: rgba(56, 189, 248, 0.12) !important; }
+[data-theme="ink"] .bg-emerald-50 { background: rgba(52, 211, 153, 0.1) !important; }
+[data-theme="ink"] .text-emerald-700 { color: #34d399 !important; }
+[data-theme="ink"] .bg-amber-50 { background: rgba(251, 191, 36, 0.1) !important; }
+[data-theme="ink"] .text-amber-700 { color: #fbbf24 !important; }
+[data-theme="ink"] .bg-amber-100 { background: rgba(251, 191, 36, 0.16) !important; }
+[data-theme="ink"] .text-amber-800 { color: #fcd34d !important; }
+[data-theme="ink"] pre.bg-slate-900 { background: rgba(0, 0, 0, 0.5) !important; }
+[data-theme="ink"] thead.bg-slate-50 { background: rgba(56, 189, 248, 0.06) !important; }
+[data-theme="ink"] .bg-purple-50 { background: rgba(196, 181, 253, 0.1) !important; }
+[data-theme="ink"] .text-purple-700 { color: #c4b5fd !important; }
+[data-theme="ink"] .bg-sky-50 { background: rgba(125, 211, 252, 0.1) !important; }
+[data-theme="ink"] .text-sky-700 { color: #7dd3fc !important; }
+
+/* ============ 主题：纸墨杂志 ============ */
+[data-theme="paper"] body {
+  background: #f3ede1;
+  color: #292524;
+}
+[data-theme="paper"] header,
+[data-theme="paper"] .bg-white {
+  background: #fffdf7 !important;
+  border-color: #e7e0d0 !important;
+  box-shadow: 0 1px 0 rgba(41, 37, 36, 0.04);
+}
+[data-theme="paper"] .text-slate-500,
+[data-theme="paper"] .text-slate-400 { color: #8a8071 !important; }
+[data-theme="paper"] .text-slate-600 { color: #57534e !important; }
+[data-theme="paper"] .border,
+[data-theme="paper"] table,
+[data-theme="paper"] .divide-y > * { border-color: #e7e0d0 !important; }
+[data-theme="paper"] .bg-slate-50,
+[data-theme="paper"] .bg-slate-100 { background: #efe8d8 !important; }
+[data-theme="paper"] .bg-blue-600,
+[data-theme="paper"] .bg-slate-900 { background: #292524 !important; }
+[data-theme="paper"] .text-blue-600,
+[data-theme="paper"] .text-blue-700 { color: #b91c1c !important; }
+[data-theme="paper"] .bg-blue-50 { background: rgba(185, 28, 28, 0.08) !important; }
+[data-theme="paper"] .bg-emerald-50 { background: rgba(22, 101, 52, 0.08) !important; }
+[data-theme="paper"] .text-emerald-700 { color: #166534 !important; }
+[data-theme="paper"] .bg-amber-50 { background: rgba(180, 83, 9, 0.08) !important; }
+[data-theme="paper"] .text-amber-700 { color: #b45309 !important; }
+[data-theme="paper"] .bg-amber-100 { background: rgba(180, 83, 9, 0.14) !important; }
+[data-theme="paper"] .text-amber-800 { color: #92400e !important; }
+[data-theme="paper"] pre.bg-slate-900 { background: #292524 !important; }
+[data-theme="paper"] thead.bg-slate-50 { background: #efe8d8 !important; }
+
+/* ============ 主题：工业铁灰（默认 · 枪灰底 + 安全橙警示） ============ */
+[data-theme="industrial"] body {
+  background: linear-gradient(180deg, #16191e 0%, #1b1f26 50%, #171a20 100%);
+  color: #e5e8ec;
+}
+[data-theme="industrial"] header,
+[data-theme="industrial"] .bg-white {
+  background: rgba(27, 32, 40, 0.94) !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+  box-shadow: inset 0 2px 0 rgba(234, 88, 12, 0.35);
+}
+[data-theme="industrial"] .text-slate-500,
+[data-theme="industrial"] .text-slate-400,
+[data-theme="industrial"] .text-slate-600 {
+  color: rgba(154, 165, 180, 0.85) !important;
+}
+[data-theme="industrial"] .text-slate-300 { color: rgba(154, 165, 180, 0.45) !important; }
+[data-theme="industrial"] .border,
+[data-theme="industrial"] table,
+[data-theme="industrial"] .divide-y > * {
+  border-color: rgba(148, 163, 184, 0.15) !important;
+}
+[data-theme="industrial"] .bg-slate-50,
+[data-theme="industrial"] .bg-slate-100\/70,
+[data-theme="industrial"] .bg-slate-100 {
+  background: rgba(148, 163, 184, 0.08) !important;
+}
+[data-theme="industrial"] .bg-blue-600,
+[data-theme="industrial"] .bg-blue-700,
+[data-theme="industrial"] .bg-slate-900,
+[data-theme="industrial"] button.bg-blue-600 {
+  background: linear-gradient(135deg, #ea580c, #c2410c) !important;
+}
+[data-theme="industrial"] .text-blue-600,
+[data-theme="industrial"] .text-blue-700 { color: #fb923c !important; }
+[data-theme="industrial"] .bg-blue-50 { background: rgba(251, 146, 60, 0.12) !important; }
+[data-theme="industrial"] .border-blue-500 { border-color: #ea580c !important; }
+[data-theme="industrial"] .ring-blue-400 { --tw-ring-color: rgba(251, 146, 60, 0.55) !important; }
+[data-theme="industrial"] .bg-emerald-50 { background: rgba(74, 222, 128, 0.1) !important; }
+[data-theme="industrial"] .text-emerald-700 { color: #4ade80 !important; }
+[data-theme="industrial"] .bg-amber-50 { background: rgba(245, 158, 11, 0.12) !important; }
+[data-theme="industrial"] .text-amber-700 { color: #fbbf24 !important; }
+[data-theme="industrial"] .bg-amber-100 { background: rgba(245, 158, 11, 0.2) !important; }
+[data-theme="industrial"] .text-amber-800 { color: #fcd34d !important; }
+[data-theme="industrial"] .text-red-700 { color: #f87171 !important; }
+[data-theme="industrial"] .text-red-500 { color: #f87171 !important; }
+[data-theme="industrial"] pre.bg-slate-900 { background: rgba(0, 0, 0, 0.45) !important; }
+[data-theme="industrial"] thead.bg-slate-50 { background: rgba(148, 163, 184, 0.08) !important; }
+[data-theme="industrial"] .bg-purple-50 { background: rgba(192, 132, 252, 0.12) !important; }
+[data-theme="industrial"] .text-purple-700 { color: #c084fc !important; }
+[data-theme="industrial"] .bg-sky-50 { background: rgba(56, 189, 248, 0.1) !important; }
+[data-theme="industrial"] .text-sky-700 { color: #38bdf8 !important; }
