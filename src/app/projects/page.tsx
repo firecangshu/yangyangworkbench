@@ -119,7 +119,7 @@ export default function ProjectsPage() {
       </div>
 
       {showForm && (
-        <div className="rounded-xl border bg-white p-4">
+        <div className="card-fluid rounded-xl border bg-white p-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <input
               className="rounded-lg border px-3 py-2 text-sm"
@@ -192,7 +192,7 @@ export default function ProjectsPage() {
             )}
           </div>
 
-          <div className="overflow-x-auto rounded-xl border bg-white">
+          <div className="card-fluid overflow-x-auto rounded-xl border bg-white">
             <table className="w-full text-left text-sm">
               <thead className="border-b bg-slate-50 text-xs text-slate-500">
                 <tr>
@@ -281,16 +281,16 @@ export default function ProjectsPage() {
                   {col.map((p) => (
                     <div key={p.id} className="rounded-lg border bg-white p-2.5 shadow-sm">
                       <div className="text-sm font-medium leading-snug">{p.name}</div>
-                      <div className="mt-0.5 truncate text-[11px] text-slate-400" title={p.path}>
+                      <div className="mt-0.5 truncate text-xs text-slate-400" title={p.path}>
                         {p.path}
                       </div>
-                      {p.tags && <div className="mt-1 text-[11px] text-slate-400">{p.tags}</div>}
+                      {p.tags && <div className="mt-1 text-xs text-slate-400">{p.tags}</div>}
                       <div className="mt-2 flex items-center justify-between">
                         <select
                           disabled={busy === p.id}
                           value={p.status}
                           onChange={(e) => updateStatus(p.id, e.target.value)}
-                          className="rounded border px-1 py-0.5 text-[11px]"
+                          className="rounded border px-1 py-0.5 text-xs"
                         >
                           {STATUS_ORDER.map((k) => (
                             <option key={k} value={k}>{STATUS_LABELS[k]}</option>
@@ -299,7 +299,7 @@ export default function ProjectsPage() {
                         <button
                           onClick={() => openDir(p.id)}
                           disabled={busy === p.id}
-                          className="rounded border px-1.5 py-0.5 text-[11px] hover:bg-slate-50"
+                          className="rounded border px-1.5 py-0.5 text-xs hover:bg-slate-50"
                         >
                           打开
                         </button>
@@ -307,7 +307,7 @@ export default function ProjectsPage() {
                     </div>
                   ))}
                   {col.length === 0 && (
-                    <div className="rounded-lg border border-dashed px-2 py-4 text-center text-[11px] text-slate-400">
+                    <div className="rounded-lg border border-dashed px-2 py-4 text-center text-xs text-slate-400">
                       空
                     </div>
                   )}

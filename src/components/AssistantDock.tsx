@@ -80,7 +80,7 @@ export function AssistantDock({ width = 360 }: { width?: number }) {
     <aside
       ref={asideRef}
       style={{ ["--dw" as string]: `${width}px` } as React.CSSProperties}
-      className="flex w-full shrink-0 flex-col border-t bg-white lg:sticky lg:top-0 lg:h-screen lg:w-[var(--dw)] lg:border-t-0 lg:border-l"
+      className="card-fluid flex w-full shrink-0 flex-col border-t bg-white lg:sticky lg:top-0 lg:h-screen lg:w-[var(--dw)] lg:border-t-0 lg:border-l"
     >
       {/* 标题栏 */}
       <div className="flex items-center justify-between gap-2 border-b bg-slate-50 px-4 py-3">
@@ -97,7 +97,7 @@ export function AssistantDock({ width = 360 }: { width?: number }) {
       </div>
 
       {cur && !cur.hasKey && (
-        <div className="border-b bg-amber-50 px-4 py-2 text-[11px] leading-snug text-amber-800">
+        <div className="border-b bg-amber-50 px-4 py-2 text-xs leading-snug text-amber-800">
           当前模型未配 key。<b>{cur.note}</b> —— 拿到后存为一行到 <code className="rounded bg-white px-1">{cur.keyFile}</code>，已配 key 的模型可下拉切换。
         </div>
       )}
@@ -131,7 +131,7 @@ export function AssistantDock({ width = 360 }: { width?: number }) {
               {m.tools && m.tools.length > 0 && (
                 <div className="mt-1.5 flex flex-wrap gap-1 border-t border-slate-200 pt-1.5">
                   {m.tools.map((t, k) => (
-                    <span key={k} className="rounded bg-white px-1.5 py-0.5 text-[10px] text-slate-500">
+                    <span key={k} className="rounded bg-white px-1.5 py-0.5 text-xs text-slate-500">
                       🔧 {t.name === "query_status" ? "查询了工作台状态" : t.name === "add_contest" ? `登记比赛「${(t.args as { name?: string })?.name ?? "?"}」` : t.name}
                     </span>
                   ))}

@@ -271,7 +271,7 @@ export default function ConnectionsPage() {
       )}
 
       {showForm && (
-        <div className="rounded-xl border bg-white p-4">
+        <div className="card-fluid rounded-xl border bg-white p-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <input className="rounded-lg border px-3 py-2 text-sm" placeholder="工具名称 *"
               value={form.toolName} onChange={(e) => setForm({ ...form, toolName: e.target.value })} />
@@ -310,7 +310,7 @@ export default function ConnectionsPage() {
       </div>
 
       {/* M17 启动场景：一键并行拉起常用组合 */}
-      <div className="rounded-xl border bg-white p-4">
+      <div className="card-fluid rounded-xl border bg-white p-4">
         <div className="flex items-center justify-between">
           <div className="text-sm font-medium text-slate-700">🚀 启动场景（一键并行拉起一组程序+指定账号）</div>
           <button
@@ -332,7 +332,7 @@ export default function ConnectionsPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium">{s.name}</div>
-                    <div className="mt-0.5 text-[11px] text-slate-500">
+                    <div className="mt-0.5 text-xs text-slate-500">
                       {s.items.map((it) => launchableLabel(it.kind, it.refId)).join(" + ") || "（空场景）"}
                     </div>
                   </div>
@@ -341,7 +341,7 @@ export default function ConnectionsPage() {
                     ▶ 启动全部
                   </button>
                 </div>
-                <div className="mt-2 flex gap-2 text-[11px]">
+                <div className="mt-2 flex gap-2 text-xs">
                   <button onClick={() => editScene(s)} className="text-slate-400 hover:text-blue-600">编辑</button>
                   <button onClick={() => deleteScene(s)} className="text-slate-400 hover:text-red-500">删除</button>
                 </div>
@@ -356,9 +356,9 @@ export default function ConnectionsPage() {
               placeholder="场景名称 *（如：比赛日三件套）"
               value={sceneEdit.name}
               onChange={(e) => setSceneEdit({ ...sceneEdit, name: e.target.value })} />
-            <div className="mt-2 text-[11px] font-medium text-slate-500">勾选要一起启动的程序 / 账号（按勾选顺序依次拉起）：</div>
+            <div className="mt-2 text-xs font-medium text-slate-500">勾选要一起启动的程序 / 账号（按勾选顺序依次拉起）：</div>
             {launchables.length === 0 && (
-              <p className="mt-1 text-[11px] text-amber-700">还没有可启动的目标——先给工具卡或账号配好启动命令（⚙ 或 账号▾）。</p>
+              <p className="mt-1 text-xs text-amber-700">还没有可启动的目标——先给工具卡或账号配好启动命令（⚙ 或 账号▾）。</p>
             )}
             <div className="mt-1 max-h-44 overflow-y-auto rounded-lg border bg-white p-2">
               <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-1">
@@ -388,11 +388,11 @@ export default function ConnectionsPage() {
       {/* 卡墙流式自适应：auto-fit 空轨道会收缩，末行不满时卡片自动拉宽铺满、不留右侧空漏 */}
       <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-4">
         {shown.map((c) => (
-          <div key={c.id} className="flex flex-col rounded-xl border bg-white p-4">
+          <div key={c.id} className="card-fluid flex flex-col rounded-xl border bg-white p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <div className="truncate font-medium">{c.toolName}</div>
-                <span className={`mt-1 inline-block rounded px-1.5 py-0.5 text-[10px] ${CATEGORY_COLORS[c.category] ?? CATEGORY_COLORS.other}`}>
+                <span className={`mt-1 inline-block rounded px-1.5 py-0.5 text-xs ${CATEGORY_COLORS[c.category] ?? CATEGORY_COLORS.other}`}>
                   {CATEGORY_LABELS[c.category] ?? c.category}
                 </span>
               </div>
@@ -409,16 +409,16 @@ export default function ConnectionsPage() {
             {c.tags && <p className="mt-1 text-xs text-slate-400">{c.tags}</p>}
             {acctOpen === c.id && (
               <div className="mt-2 rounded-lg border bg-slate-50 p-2">
-                <div className="text-[11px] font-medium text-slate-500">账号条目（一号一命令，点 ▶ 启动该号）</div>
-                <div className="mt-0.5 text-[10px] text-slate-400">同一号重复点 ▶ 只会聚焦已开窗口；长期不用的号登录态可能过期，重新登录一次即可。</div>
-                {c.accounts.length === 0 && <div className="mt-1 text-[11px] text-slate-400">暂无账号，先在下面添加</div>}
+                <div className="text-xs font-medium text-slate-500">账号条目（一号一命令，点 ▶ 启动该号）</div>
+                <div className="mt-0.5 text-xs text-slate-400">同一号重复点 ▶ 只会聚焦已开窗口；长期不用的号登录态可能过期，重新登录一次即可。</div>
+                {c.accounts.length === 0 && <div className="mt-1 text-xs text-slate-400">暂无账号，先在下面添加</div>}
                 {c.accounts.map((a) => (
                   <div key={a.id} className="mt-1 flex items-center gap-1.5">
                     <span className="min-w-0 flex-1 truncate text-xs" title={a.launchCommand}>{a.label}</span>
                     <button onClick={() => launchAccount(a)}
-                      className="rounded bg-blue-600 px-1.5 py-0.5 text-[10px] text-white hover:bg-blue-700">▶</button>
+                      className="rounded bg-blue-600 px-1.5 py-0.5 text-xs text-white hover:bg-blue-700">▶</button>
                     <button onClick={() => deleteAccount(a)}
-                      className="text-[10px] text-slate-300 hover:text-red-500">删</button>
+                      className="text-xs text-slate-300 hover:text-red-500">删</button>
                   </div>
                 ))}
                 <div className="mt-2 flex gap-1.5">
@@ -465,7 +465,7 @@ export default function ConnectionsPage() {
           </div>
         ))}
         {shown.length === 0 && (
-          <div className="col-span-full rounded-xl border bg-white px-4 py-10 text-center text-sm text-slate-400">
+          <div className="card-fluid col-span-full rounded-xl border bg-white px-4 py-10 text-center text-sm text-slate-400">
             没有符合条件的工具
           </div>
         )}

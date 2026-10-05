@@ -76,7 +76,7 @@ export function GanttView({ contests }: { contests: Contest[] }) {
   }, [min, max]);
 
   return (
-    <div className="rounded-xl border bg-white p-4">
+    <div className="card-fluid rounded-xl border bg-white p-4">
       <div className="mb-3 flex items-center justify-between">
         <div className="font-medium">比赛甘特图</div>
         <div className="text-xs text-slate-400">
@@ -88,7 +88,7 @@ export function GanttView({ contests }: { contests: Contest[] }) {
         {/* 月份刻度 */}
         <div className="relative mb-1 h-5">
           {ticks.map((t, i) => (
-            <div key={i} className="absolute text-[10px] text-slate-400" style={{ left: `${t.pos}%` }}>
+            <div key={i} className="absolute text-xs text-slate-400" style={{ left: `${t.pos}%` }}>
               <div className="border-l border-slate-200 pl-1">{t.label}</div>
             </div>
           ))}
@@ -100,7 +100,7 @@ export function GanttView({ contests }: { contests: Contest[] }) {
             className="pointer-events-none absolute inset-y-0 z-10 border-l-2 border-dashed border-red-400"
             style={{ left: `${todayPct}%` }}
           >
-            <span className="absolute -top-1 left-1 rounded bg-red-50 px-1 text-[10px] font-medium text-red-600">
+            <span className="absolute -top-1 left-1 rounded bg-red-50 px-1 text-xs font-medium text-red-600">
               今天
             </span>
           </div>
@@ -122,11 +122,11 @@ export function GanttView({ contests }: { contests: Contest[] }) {
                     style={{ left: `${l}%`, width: `${width}%` }}
                     title={`${c.startDate || "?"} → ${c.deadline || "?"}（${CONTEST_STATUS_LABELS[c.status] ?? c.status}）`}
                   />
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-1 text-[10px] text-slate-400 opacity-0 transition group-hover:opacity-100">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-1 text-xs text-slate-400 opacity-0 transition group-hover:opacity-100">
                     {s ? ymd(s) : "?"} → {d ? ymd(d) : "待定"}
                   </span>
                 </div>
-                <div className="w-16 shrink-0 text-right text-[11px]">
+                <div className="w-24 shrink-0 text-right text-xs tabular-nums">
                   {c.deadline ? (
                     <span className={expired ? "text-slate-400" : days !== null && days <= 14 ? "font-semibold text-red-600" : "text-slate-500"}>
                       {expired ? `过期${-days}天` : `${days}天`}
@@ -142,7 +142,7 @@ export function GanttView({ contests }: { contests: Contest[] }) {
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-3 text-[10px] text-slate-400">
+      <div className="mt-4 flex flex-wrap gap-3 text-xs text-slate-400">
         {Object.entries(BAR_COLORS).map(([k, cls]) => (
           <span key={k} className="inline-flex items-center gap-1">
             <span className={`inline-block h-2 w-4 rounded ${cls}`} />

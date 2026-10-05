@@ -28,12 +28,12 @@ export function Sidebar({ width = 240 }: { width?: number }) {
   return (
     <>
       {/* 桌面侧边栏：宽屏(md+)作为可拖工作区的一栏（sticky 全高、shrink-0、宽度由 WorkspaceShell 拖动控制） */}
-      <aside style={{ width }} className="sticky top-0 z-10 hidden h-screen shrink-0 flex-col bg-sidebar text-sidebar-fg md:flex">
+      <aside style={{ width }} className="card-fluid sticky top-0 z-10 hidden h-screen shrink-0 flex-col bg-sidebar text-sidebar-fg md:flex">
         <div className="flex items-center gap-3 px-5 pb-5 pt-6">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand text-lg font-bold text-white">杨</span>
           <div>
             <div className="text-lg font-semibold leading-tight">杨杨的AI比赛专用工作台</div>
-            <div className="text-[11px] text-sidebar-fg/60">连接本地与程序的中枢</div>
+            <div className="text-xs text-sidebar-fg/60">连接本地与程序的中枢</div>
           </div>
         </div>
         <nav className="flex-1 space-y-1 px-3">
@@ -47,7 +47,7 @@ export function Sidebar({ width = 240 }: { width?: number }) {
             </Link>
           ))}
         </nav>
-        <div className="px-5 pb-5 text-[11px] text-sidebar-fg/50">
+        <div className="px-5 pb-5 text-xs text-sidebar-fg/50">
           <div>M16 · 本地优先 · 数据在本机</div>
           <div className="mt-0.5">晨报 8:30 · 备份 21:00</div>
         </div>

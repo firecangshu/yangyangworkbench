@@ -1,5 +1,27 @@
 @import "tailwindcss";
 
+/* ============ M25 全站字号基线（Tailwind v4 主题令牌层，一处抬档全站 6 页生效） ============
+   全站所有 text-xs / text-sm / … 都读这套令牌，不必改 216 处散落的类名。
+   信息字最低档抬到 14px（原 12px），正文 16px（原 14px）。 */
+@theme {
+  --text-xs: 0.875rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 1rem;
+  --text-sm--line-height: 1.5;
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.45;
+  --text-lg: 1.1875rem;
+  --text-lg--line-height: 1.4;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.35;
+  --text-2xl: 1.625rem;
+  --text-2xl--line-height: 1.3;
+  --text-3xl: 2rem;
+  --text-3xl--line-height: 1.25;
+  --text-4xl: 2.375rem;
+  --text-4xl--line-height: 1.2;
+}
+
 :root {
   --bg: #f4f5f7;
   --panel: #ffffff;
@@ -22,6 +44,45 @@ body {
 ::before,
 ::after {
   border-color: var(--line);
+}
+
+/* ============ M26 字号 ↔ 卡片尺寸 成比例 ============
+   卡片壳带 .card-fluid 即成为宽度容器（container-type: inline-size）；
+   卡内每个 text-* 字号改由「卡片自身宽度的 1%（cqi）」计算：
+   · 下限 = M25 的全站基线值 —— 卡片缩到多小都不会低于它（可读性锁死）
+   · 上限 = 大卡里不至于糊成一片
+   于是一张卡的标题/正文/元信息永远按同一比例伸缩，不会出现「卡大字小」或「卡小字爆」。 */
+@layer base {
+  .card-fluid {
+    container-type: inline-size;
+  }
+}
+
+@layer utilities {
+  .card-fluid .text-xs {
+    font-size: clamp(0.875rem, 2.4cqi, 1.0625rem);
+  }
+  .card-fluid .text-sm {
+    font-size: clamp(1rem, 3cqi, 1.25rem);
+  }
+  .card-fluid .text-base {
+    font-size: clamp(1.0625rem, 3.5cqi, 1.4375rem);
+  }
+  .card-fluid .text-lg {
+    font-size: clamp(1.1875rem, 4.2cqi, 1.6875rem);
+  }
+  .card-fluid .text-xl {
+    font-size: clamp(1.375rem, 4.9cqi, 1.9375rem);
+  }
+  .card-fluid .text-2xl {
+    font-size: clamp(1.625rem, 5.8cqi, 2.375rem);
+  }
+  .card-fluid .text-3xl {
+    font-size: clamp(2rem, 7cqi, 2.75rem);
+  }
+  .card-fluid .text-4xl {
+    font-size: clamp(2.375rem, 8.5cqi, 3.25rem);
+  }
 }
 
 /* ============ 品牌令牌（M14 · 融合社工星火设计语言） ============ */

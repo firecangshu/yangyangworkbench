@@ -48,7 +48,7 @@ export default function LogPage() {
         </p>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border bg-white">
+      <div className="card-fluid overflow-x-auto rounded-xl border bg-white">
         <table className="w-full text-left text-sm">
           <thead className="border-b bg-slate-50 text-xs text-slate-500">
             <tr>
@@ -75,7 +75,7 @@ export default function LogPage() {
                     {new Date(e.ts).toLocaleString("zh-CN", { hour12: false })}
                   </td>
                   <td className="px-4 py-3 text-xs">
-                    <span className="mr-1 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">
+                    <span className="mr-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">
                       {{ project: "项目", contest: "比赛", connection: "工具卡", sop: "SOP", launch_scene: "启动场景", account: "账号" }[e.entityType] ?? e.entityType}
                     </span>
                     #{e.entityId}
