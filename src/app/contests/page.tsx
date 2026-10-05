@@ -217,7 +217,7 @@ export default function ContestsPage() {
       </div>
 
       {showSopLib && (
-        <div className="rounded-xl border bg-white p-4">
+        <div className="card-fluid rounded-xl border bg-white p-4">
           <div className="mb-1 font-medium">SOP 流程模板库</div>
           <p className="mb-3 text-xs text-slate-500">把可复用的流程定义一次（如「比赛投稿 SOP」），在比赛详情里一键套用生成检查清单。</p>
           <div className="space-y-2">
@@ -247,7 +247,7 @@ export default function ContestsPage() {
       )}
 
       {showForm && (
-        <div className="rounded-xl border bg-white p-4">
+        <div className="card-fluid rounded-xl border bg-white p-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <input className="rounded-lg border px-3 py-2 text-sm" placeholder="比赛名称 *"
               value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -309,7 +309,7 @@ export default function ContestsPage() {
           const { done, total } = progress(c);
           const isOpen = expanded === c.id;
           return (
-            <div key={c.id} className="rounded-xl border bg-white">
+            <div key={c.id} className="card-fluid rounded-xl border bg-white">
               <div className="flex items-center justify-between gap-4 p-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -429,7 +429,7 @@ export default function ContestsPage() {
           );
         })}
         {shown.length === 0 && (
-          <div className="rounded-xl border bg-white px-4 py-10 text-center text-sm text-slate-400">
+          <div className="card-fluid rounded-xl border bg-white px-4 py-10 text-center text-sm text-slate-400">
             没有符合条件的比赛
           </div>
         )}
