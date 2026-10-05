@@ -36,3 +36,13 @@ export function dayMark(y: number, m: number, d: number): DayMark {
     lunarDay: isMonthStart ? `${lunar.getMonthInChinese()}月` : lunar.getDayInChinese(),
   };
 }
+
+/**
+ * 取某日所属农历年份的「干支年·生肖」标题，如「农历丙午年·马年」。
+ * 以立春为界（getYearInGanZhiByLiChun），与万年历口径一致，符合红线④。
+ * @param y 年 @param m 月(0基，同 Date) @param d 日
+ */
+export function lunarYearLabel(y: number, m: number, d: number): string {
+  const lunar = Solar.fromYmd(y, m + 1, d).getLunar();
+  return `农历${lunar.getYearInGanZhiByLiChun()}年·${lunar.getYearShengXiao()}年`;
+}

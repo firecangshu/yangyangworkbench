@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { dayMark } from "@/lib/cn-calendar";
+import { dayMark, lunarYearLabel } from "@/lib/cn-calendar";
 
 type ContestBrief = {
   id: number;
@@ -54,40 +54,50 @@ export function MonthCalendar({
 
   const todayStr = ymd(today);
   const monthLabel = `${cursor.getFullYear()} 年 ${cursor.getMonth() + 1} 月`;
+  const yearLabel = lunarYearLabel(cursor.getFullYear(), cursor.getMonth(), 1);
 
   return (
-    <div className="rounded-xl border bg-white p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="font-medium">{monthLabel}</div>
-        <div className="flex gap-2">
+    <div className="rounded-xl bg-white p-3 shadow-[0_6px_20px_rgba(31,41,55,0.07)] ring-1 ring-slate-100">
+      {/* 标题行：📅 图标 + 粗月份 + 干支年副标题（对齐社工星火区块规范）；导航收为幽灵图标钮 + 赤陶「回今天」 */}
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-brand-soft text-sm">📅</span>
+          <div className="leading-tight">
+            <div className="text-sm font-semibold">{monthLabel}</div>
+            <div className="text-[11px] text-slate-400">{yearLabel}</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
           <button
-            className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50"
+            aria-label="上一月"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100"
             onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
           >
-            ← 上月
+            ‹
           </button>
           <button
-            className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50"
+            className="rounded-lg bg-brand px-2.5 py-1 text-xs font-medium text-white transition hover:opacity-90"
             onClick={() => setCursor(new Date(today.getFullYear(), today.getMonth(), 1))}
           >
             回今天
           </button>
           <button
-            className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50"
+            aria-label="下一月"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100"
             onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
           >
-            下月 →
+            ›
           </button>
         </div>
       </div>
-      <div className="grid grid-cols-7 gap-1 text-center text-xs text-slate-400">
+      <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-slate-400">
         {WEEK.map((w) => (
-          <div key={w} className="py-1">{w}</div>
+          <div key={w} className="py-0.5">{w}</div>
         ))}
       </div>
       <div className="grid grid-cols-7 gap-1">
         {cells.map((d, i) => {
-          if (!d) return <div key={`e${i}`} className="min-h-[74px] rounded bg-slate-50/50" />;
+          if (!d) return <div key={`e${i}`} className="min-h-[56px] rounded-lg bg-slate-50/60" />;
           const key = ymd(d);
           const items = byDay.get(key) ?? [];
           const isToday = key === todayStr;
@@ -96,28 +106,28 @@ export function MonthCalendar({
             <button
               key={key}
               onClick={() => onPickDay?.(key, items)}
-              className={`flex min-h-[74px] flex-col rounded border p-1 text-left align-top transition ${
-                isToday ? "border-blue-500 bg-blue-50" : "border-slate-100 hover:border-slate-300"
+              className={`flex min-h-[56px] flex-col rounded-lg p-1 text-left align-top transition ${
+                isToday ? "bg-brand text-white shadow-[0_3px_8px_rgba(217,83,79,0.3)]" : "bg-slate-50/60 hover:bg-slate-100"
               }`}
             >
               <div className="flex items-baseline justify-between">
-                <span className={`text-xs ${isToday ? "font-bold text-blue-700" : "text-slate-500"}`}>
+                <span className={`text-[11px] ${isToday ? "font-bold text-white" : "text-slate-500"}`}>
                   {d.getDate()}
                 </span>
-                <span className="text-[9px] leading-none text-slate-300">{mark.lunarDay}</span>
+                <span className={`text-[9px] leading-none ${isToday ? "text-white/70" : "text-slate-300"}`}>{mark.lunarDay}</span>
               </div>
               {mark.festivals.length > 0 && (
-                <div className="mt-0.5 truncate text-[10px] font-medium leading-tight text-amber-600" title={mark.festivals.join("・")}>
+                <div className={`truncate text-[10px] font-medium leading-tight ${isToday ? "text-white" : "text-amber-600"}`} title={mark.festivals.join("・")}>
                   {mark.festivals[0]}
                 </div>
               )}
               {mark.jieqi && (
-                <div className="truncate text-[10px] leading-tight text-teal-600">{mark.jieqi}</div>
+                <div className={`truncate text-[10px] leading-tight ${isToday ? "text-white/90" : "text-teal-600"}`}>{mark.jieqi}</div>
               )}
               {items.map((c) => (
                 <div
                   key={c.id}
-                  className="mt-0.5 truncate rounded bg-brand-soft px-1 text-[10px] leading-tight text-brand"
+                  className={`mt-0.5 truncate rounded px-1 text-[10px] leading-tight ${isToday ? "bg-white/20 text-white" : "bg-brand-soft text-brand"}`}
                   title={`${c.name}（截止）`}
                 >
                   ◈ {c.name}
@@ -128,12 +138,13 @@ export function MonthCalendar({
         })}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-slate-400">
+        <span><span className="text-brand">■</span> 今天</span>
         <span><span className="text-amber-600">■</span> 节日</span>
         <span><span className="text-teal-600">■</span> 节气</span>
         <span><span className="text-brand">◈</span> 赛事截止</span>
       </div>
       {noDeadline.length > 0 && (
-        <div className="mt-3 rounded-lg bg-slate-50 p-3">
+        <div className="mt-2 rounded-lg bg-slate-50 p-2.5">
           <div className="text-xs font-medium text-slate-600">截止日待定（{noDeadline.length} 场）</div>
           <div className="mt-1 flex flex-wrap gap-1.5">
             {noDeadline.map((c) => (
