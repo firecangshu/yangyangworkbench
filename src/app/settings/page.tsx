@@ -205,7 +205,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="rounded-xl border bg-white p-4">
-        <div className="mb-1 font-medium">MCP 接入（让 AI 工具查雀台数据）</div>
+        <div className="mb-1 font-medium">MCP 接入（让 AI 工具查 tagex 数据）</div>
         <p className="mb-3 text-xs text-slate-500">
           把下面片段粘贴到 Claude / CodeBuddy 等工具的 MCP 配置（mcp.json）里，AI 即可调用
           list_projects / list_contests / get_project / add_event 四个工具。

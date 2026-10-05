@@ -4,7 +4,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
-  title: "雀台 · AI 创作工作台",
+  title: "tagex的工作台",
   description: "本地优先的 AI 创作项目 / 比赛 / 工具中枢",
 };
 

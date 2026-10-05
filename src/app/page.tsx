@@ -78,7 +78,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">仪表盘</h1>
-        <p className="mt-1 text-sm text-slate-500">雀台 M14 · 本地优先 · 数据存于本机 SQLite</p>
+        <p className="mt-1 text-sm text-slate-500">tagex M14 · 本地优先 · 数据存于本机 SQLite</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">

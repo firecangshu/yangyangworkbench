@@ -55,7 +55,7 @@ if (due.length === 0) {
   process.exit(0);
 }
 
-const title = "雀台 · 比赛截止提醒";
+const title = "tagex · 比赛截止提醒";
 const body = due
   .map((d) => `【${d.days === 0 ? "今天" : `还剩 ${d.days} 天`}】${d.name}（${d.deadline}）`)
   .join("\n");

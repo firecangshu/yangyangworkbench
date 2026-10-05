@@ -8,8 +8,8 @@ set "APP_DIR=%APP_DIR:~0,-1%"
 netstat -ano | findstr ":3000" | findstr "LISTENING" >nul 2>&1
 if not errorlevel 1 goto open
 
-echo [Queetai] starting local server (minimized, ~10s)...
-start "queetai-server" /min cmd /c "cd /d "%APP_DIR%" && npm run dev"
+  echo [tagex] starting local server (minimized, ~10s)...
+  start "tagex-server" /min cmd /c "cd /d "%APP_DIR%" && npm run dev"
 timeout /t 10 /nobreak >nul
 
 :open

@@ -30,10 +30,10 @@ export function Sidebar() {
       {/* 桌面侧边栏 */}
       <aside className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col bg-sidebar text-sidebar-fg md:flex">
         <div className="flex items-center gap-3 px-5 pb-5 pt-6">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand text-lg font-bold text-white">雀</span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand text-lg font-bold text-white">T</span>
           <div>
-            <div className="text-lg font-semibold leading-tight">雀台</div>
-            <div className="text-[11px] text-sidebar-fg/60">本地 AI 智能工作台</div>
+            <div className="text-lg font-semibold leading-tight">tagex的工作台</div>
+            <div className="text-[11px] text-sidebar-fg/60">连接本地与程序的中枢</div>
           </div>
         </div>
         <nav className="flex-1 space-y-1 px-3">
