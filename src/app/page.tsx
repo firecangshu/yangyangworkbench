@@ -170,10 +170,10 @@ export default function Dashboard() {
         <div className="shrink-0 text-left sm:text-right">
           <div className="font-mono text-4xl font-semibold tracking-wider">{clock}</div>
           <div className="mt-1 text-sm text-sidebar-fg/70">{dateText}</div>
-          <Link href="/assistant"
+          <button onClick={() => window.dispatchEvent(new Event("open-assistant"))}
             className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-medium text-white hover:opacity-90">
             🤖 问问 AI 助手
-          </Link>
+          </button>
         </div>
       </div>
 

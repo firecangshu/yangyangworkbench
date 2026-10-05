@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { AssistantDock } from "@/components/AssistantDock";
 
 export const metadata: Metadata = {
   title: "杨杨的AI比赛专用工作台",
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Sidebar />
             <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
           </div>
+          <AssistantDock />
         </ThemeProvider>
       </body>
     </html>
