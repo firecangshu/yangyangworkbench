@@ -16,6 +16,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.0",
     "@prisma/client": "^6.5.0",
+    "lunar-typescript": "^1.8.6",
     "next": "^15.5.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
