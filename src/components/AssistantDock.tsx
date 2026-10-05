@@ -11,15 +11,16 @@ const QUICK = [
   "最近我该推进哪件事？",
 ];
 
-// 全站常驻的 AI 助手对话卡（M17）：固定右下角、默认展开常显。
-// 逻辑与原 /assistant 页一致，改为 dock 形态挂进全局 layout，任何页面随手可问。
+// 全站常驻的 AI 助手（M17 综合布局版）：作为工作区一栏，而非悬浮遮罩。
+// 宽屏(lg+)固定在右侧成独立一栏（sticky 全高，内容再长也并排不重叠）；
+// 窄屏落到主内容下方，仍在文档流内，绝不遮挡卡片。
 export function AssistantDock() {
-  const [open, setOpen] = useState(true);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [provider, setProvider] = useState("glm");
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const asideRef = useRef<HTMLElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -31,11 +32,14 @@ export function AssistantDock() {
     });
   }, []);
   useEffect(() => { loadProviders(); }, [loadProviders]);
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, busy, open]);
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [msgs, busy]);
 
-  // 首页 Hero「问问 AI 助手」按钮通过全局事件唤起：展开 + 聚焦输入框
+  // 首页 Hero「问问 AI 助手」按钮：滚动到本栏并聚焦输入框
   useEffect(() => {
-    const onOpen = () => { setOpen(true); setTimeout(() => inputRef.current?.focus(), 50); };
+    const onOpen = () => {
+      asideRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      setTimeout(() => inputRef.current?.focus(), 120);
+    };
     window.addEventListener("open-assistant", onOpen);
     return () => window.removeEventListener("open-assistant", onOpen);
   }, []);
@@ -72,49 +76,38 @@ export function AssistantDock() {
 
   const cur = providers.find((p) => p.id === provider);
 
-  // 收起态：右下角一颗药丸按钮
-  if (!open) {
-    return (
-      <button onClick={() => { setOpen(true); setTimeout(() => inputRef.current?.focus(), 50); }}
-        className="fixed bottom-4 right-4 z-40 flex items-center gap-2 rounded-full bg-brand px-4 py-3 text-sm font-medium text-white shadow-lg hover:opacity-90">
-        🤖 问 AI 助手
-      </button>
-    );
-  }
-
   return (
-    <div className="fixed bottom-4 right-4 z-40 flex h-[min(72vh,40rem)] w-[calc(100vw-2rem)] max-w-sm flex-col overflow-hidden rounded-2xl border bg-white shadow-2xl">
+    <aside
+      ref={asideRef}
+      className="flex w-full shrink-0 flex-col border-t bg-white lg:sticky lg:top-0 lg:h-screen lg:w-[22rem] lg:border-t-0 lg:border-l"
+    >
       {/* 标题栏 */}
-      <div className="flex items-center justify-between gap-2 border-b bg-slate-50 px-3 py-2.5">
+      <div className="flex items-center justify-between gap-2 border-b bg-slate-50 px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="text-lg">🤖</span>
           <span className="text-sm font-semibold">AI 助手</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <select value={provider} onChange={(e) => setProvider(e.target.value)}
-            className="max-w-[8.5rem] rounded-md border bg-white px-1.5 py-1 text-xs">
-            {providers.map((p) => (
-              <option key={p.id} value={p.id}>{p.hasKey ? "🟢" : "⚪"} {p.label.split("（")[0]}</option>
-            ))}
-          </select>
-          <button onClick={() => setOpen(false)} title="收起（不丢对话）"
-            className="rounded-md px-2 py-1 text-sm text-slate-500 hover:bg-slate-200">−</button>
-        </div>
+        <select value={provider} onChange={(e) => setProvider(e.target.value)}
+          className="max-w-[10rem] rounded-md border bg-white px-2 py-1 text-xs">
+          {providers.map((p) => (
+            <option key={p.id} value={p.id}>{p.hasKey ? "🟢" : "⚪"} {p.label.split("（")[0]}</option>
+          ))}
+        </select>
       </div>
 
       {cur && !cur.hasKey && (
-        <div className="border-b bg-amber-50 px-3 py-2 text-[11px] leading-snug text-amber-800">
+        <div className="border-b bg-amber-50 px-4 py-2 text-[11px] leading-snug text-amber-800">
           当前模型未配 key。<b>{cur.note}</b> —— 拿到后存为一行到 <code className="rounded bg-white px-1">{cur.keyFile}</code>，已配 key 的模型可下拉切换。
         </div>
       )}
 
-      {/* 消息区 */}
-      <div className="flex-1 space-y-3 overflow-y-auto px-3 py-3">
+      {/* 消息区：宽屏撑满栏高独立滚动；窄屏限高避免过长 */}
+      <div className="h-[45vh] flex-1 space-y-3 overflow-y-auto px-4 py-3 lg:h-auto">
         {msgs.length === 0 && (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
             <div className="text-3xl">👋</div>
             <p className="text-xs text-slate-400">我在呢，任何页面都能喊我。点一下常用开场直接问：</p>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex w-full flex-col gap-1.5 px-2">
               {QUICK.map((q) => (
                 <button key={q} onClick={() => send(q)}
                   className="rounded-lg border bg-slate-50 px-3 py-1.5 text-left text-xs text-slate-600 hover:bg-blue-50 hover:text-blue-600">
@@ -157,7 +150,7 @@ export function AssistantDock() {
       </div>
 
       {/* 输入区 */}
-      <div className="flex gap-1.5 border-t bg-slate-50 p-2">
+      <div className="flex gap-1.5 border-t bg-slate-50 p-2.5">
         <input
           ref={inputRef}
           className="min-w-0 flex-1 rounded-lg border bg-white px-3 py-2 text-xs"
@@ -175,6 +168,6 @@ export function AssistantDock() {
             className="rounded-lg border bg-white px-2 py-2 text-xs text-slate-500 hover:bg-slate-100">🧹</button>
         )}
       </div>
-    </div>
+    </aside>
   );
 }

@@ -16,9 +16,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <div className="md:pl-60">
             <Sidebar />
-            <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+            <div className="flex min-h-screen flex-col lg:flex-row">
+              <main className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-6 py-8">{children}</main>
+              <AssistantDock />
+            </div>
           </div>
-          <AssistantDock />
         </ThemeProvider>
       </body>
     </html>
