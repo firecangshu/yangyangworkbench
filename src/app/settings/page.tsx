@@ -53,14 +53,14 @@ export default function SettingsPage() {
 
   const [scan, setScan] = useState<ScanReport | null>(null);
   const [scanBusy, setScanBusy] = useState(false);
-  const [theme, setThemeState] = useState("industrial");
+  const [theme, setThemeState] = useState("spark");
   const [importMsg, setImportMsg] = useState("");
   const [importBusy, setImportBusy] = useState(false);
   const [credHealth, setCredHealth] = useState({ covered: 0, total: 0, missing: [] as string[] });
   const [copiedBw, setCopiedBw] = useState(false);
 
   useEffect(() => {
-    setThemeState(localStorage.getItem("queetai-theme") || "industrial");
+    setThemeState(localStorage.getItem("queetai-theme") || "spark");
   }, []);
 
   function chooseTheme(t: string) {
@@ -320,9 +320,10 @@ export default function SettingsPage() {
       <div className="rounded-xl border bg-white p-4">
         <div className="mb-1 font-medium">界面主题</div>
         <p className="mb-3 text-xs text-slate-500">选中的主题保存在本机浏览器，立即生效。</p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           {[
-            { id: "industrial", name: "工业铁灰", desc: "默认 · 安全橙", colors: ["#16191e", "#1b2028", "#ea580c"] },
+            { id: "spark", name: "星火", desc: "默认 · 赤陶×墨蓝", colors: ["#f4f5f7", "#2c3e50", "#d9534f"] },
+            { id: "industrial", name: "工业铁灰", desc: "暗色 · 安全橙", colors: ["#16191e", "#1b2028", "#ea580c"] },
             { id: "minimal", name: "极简白", desc: "经典亮色", colors: ["#f6f7f9", "#ffffff", "#2563eb"] },
             { id: "goose", name: "护院鹅深绿", desc: "路演基准", colors: ["#07150e", "#0d2418", "#6ee7a8"] },
             { id: "ink", name: "墨蓝夜航", desc: "深色科技", colors: ["#070b14", "#0f172a", "#38bdf8"] },

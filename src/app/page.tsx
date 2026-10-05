@@ -14,6 +14,41 @@ const STATUS_LABELS: Record<string, string> = {
   incubating: "孵化中", dev: "开发中", submitted: "已提交", maintain: "维护中", done: "完结",
 };
 
+const STATUS_ICONS: Record<string, string> = {
+  incubating: "M12 3c-3.5 0-6 4-6 8a6 6 0 0 0 12 0c0-4-2.5-8-6-8Z",
+  dev: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5Z",
+  submitted: "M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z",
+  maintain: "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76Z",
+  done: "M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4 12 14.01l-3-3",
+};
+
+const FOLDER_ICON = "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z";
+
+function Icon({ d, size = "h-5 w-5" }: { d: string; size?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round" className={size}>
+      <path d={d} />
+    </svg>
+  );
+}
+
+function Kpi({ label, value, icon, brand = false }: { label: string; value: number; icon: string; brand?: boolean }) {
+  return (
+    <div className="rounded-xl border bg-white p-4">
+      <div className="flex items-center gap-3">
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${brand ? "bg-brand-soft text-brand" : "bg-slate-100 text-slate-500"}`}>
+          <Icon d={icon} />
+        </span>
+        <div className="min-w-0">
+          <div className="text-2xl font-semibold leading-none">{value}</div>
+          <div className="mt-1 truncate text-xs text-slate-500">{label}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [contests, setContests] = useState<ContestBrief[]>([]);
@@ -43,19 +78,13 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">仪表盘</h1>
-        <p className="mt-1 text-sm text-slate-500">雀台 M2 · 本地优先 · 数据存于本机 SQLite</p>
+        <p className="mt-1 text-sm text-slate-500">雀台 M14 · 本地优先 · 数据存于本机 SQLite</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border bg-white p-4">
-          <div className="text-sm text-slate-500">已登记项目</div>
-          <div className="mt-1 text-3xl font-semibold">{projects.length}</div>
-        </div>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <Kpi label="已登记项目" value={projects.length} icon={FOLDER_ICON} brand />
         {Object.entries(STATUS_LABELS).map(([k, label]) => (
-          <div key={k} className="rounded-xl border bg-white p-4">
-            <div className="text-sm text-slate-500">{label}</div>
-            <div className="mt-1 text-3xl font-semibold">{byStatus[k] ?? 0}</div>
-          </div>
+          <Kpi key={k} label={label} value={byStatus[k] ?? 0} icon={STATUS_ICONS[k]} />
         ))}
       </div>
 

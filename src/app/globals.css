@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f6f7f9;
+  --bg: #f4f5f7;
   --panel: #ffffff;
   --ink: #1a2332;
   --muted: #6b7688;
@@ -14,6 +14,15 @@ body {
   color: var(--ink);
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
 }
+
+/* ============ 品牌令牌（M14 · 融合社工星火设计语言） ============ */
+/* base 值即 spark 星火主题：赤陶主色 #D9534F + 墨蓝侧边栏 #2C3E50 */
+.bg-sidebar { background: #2c3e50; }
+.text-sidebar-fg { color: rgba(226, 232, 240, 0.92); }
+.bg-brand { background: #d9534f; }
+.text-brand { color: #d9534f; }
+.bg-brand-soft { background: rgba(217, 83, 79, 0.1); }
+.bg-brand-hover:hover { background: #c9463f; }
 
 /* ============ 主题：护院鹅深绿（路演基准） ============ */
 [data-theme="goose"] body {
@@ -193,3 +202,46 @@ body {
 [data-theme="industrial"] .text-purple-700 { color: #c084fc !important; }
 [data-theme="industrial"] .bg-sky-50 { background: rgba(56, 189, 248, 0.1) !important; }
 [data-theme="industrial"] .text-sky-700 { color: #38bdf8 !important; }
+
+/* ============ 主题：星火 spark（默认 · 融合社工星火） ============ */
+[data-theme="spark"] body { background: #f4f5f7; color: #1f2937; }
+[data-theme="spark"] header,
+[data-theme="spark"] .bg-white { box-shadow: 0 1px 2px rgba(31, 41, 55, 0.04); }
+[data-theme="spark"] .bg-blue-600,
+[data-theme="spark"] .bg-blue-700,
+[data-theme="spark"] .bg-slate-900,
+[data-theme="spark"] button.bg-blue-600 { background: #d9534f !important; }
+[data-theme="spark"] .bg-blue-600:hover,
+[data-theme="spark"] button.bg-blue-600:hover { background: #c9463f !important; }
+[data-theme="spark"] .text-blue-600,
+[data-theme="spark"] .text-blue-700 { color: #c9463f !important; }
+[data-theme="spark"] .bg-blue-50 { background: rgba(217, 83, 79, 0.08) !important; }
+[data-theme="spark"] .border-blue-500 { border-color: #d9534f !important; }
+[data-theme="spark"] .ring-blue-400 { --tw-ring-color: rgba(217, 83, 79, 0.45) !important; }
+[data-theme="spark"] .text-red-600 { color: #b91c1c !important; }
+
+/* 老主题对品牌类/侧边栏的覆盖（M14 新骨架兼容层） */
+[data-theme="minimal"] .bg-sidebar { background: #1e293b; }
+[data-theme="minimal"] .bg-brand { background: #2563eb; }
+[data-theme="minimal"] .text-brand { color: #2563eb; }
+[data-theme="minimal"] .bg-brand-soft { background: rgba(37, 99, 235, 0.1); }
+
+[data-theme="industrial"] .bg-sidebar { background: rgba(27, 32, 40, 0.97); border-right: 1px solid rgba(148, 163, 184, 0.12); }
+[data-theme="industrial"] .bg-brand { background: linear-gradient(135deg, #ea580c, #c2410c) !important; }
+[data-theme="industrial"] .text-brand { color: #fb923c !important; }
+[data-theme="industrial"] .bg-brand-soft { background: rgba(251, 146, 60, 0.12) !important; }
+
+[data-theme="goose"] .bg-sidebar { background: #0d2418; border-right: 1px solid rgba(110, 231, 168, 0.12); }
+[data-theme="goose"] .bg-brand { background: linear-gradient(135deg, #1a7a4a, #14663c) !important; }
+[data-theme="goose"] .text-brand { color: #6ee7a8 !important; }
+[data-theme="goose"] .bg-brand-soft { background: rgba(110, 231, 168, 0.1) !important; }
+
+[data-theme="ink"] .bg-sidebar { background: #0f172a; border-right: 1px solid rgba(56, 189, 248, 0.12); }
+[data-theme="ink"] .bg-brand { background: linear-gradient(135deg, #0369a1, #0c4a6e) !important; }
+[data-theme="ink"] .text-brand { color: #38bdf8 !important; }
+[data-theme="ink"] .bg-brand-soft { background: rgba(56, 189, 248, 0.1) !important; }
+
+[data-theme="paper"] .bg-sidebar { background: #292524; }
+[data-theme="paper"] .bg-brand { background: #b91c1c !important; }
+[data-theme="paper"] .text-brand { color: #b91c1c !important; }
+[data-theme="paper"] .bg-brand-soft { background: rgba(185, 28, 28, 0.08) !important; }

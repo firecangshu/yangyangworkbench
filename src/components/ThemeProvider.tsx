@@ -6,7 +6,7 @@ const KEY = "queetai-theme";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    const t = localStorage.getItem(KEY) || "industrial";
+    const t = localStorage.getItem(KEY) || "spark";
     document.documentElement.dataset.theme = t;
   }, []);
   return <>{children}</>;

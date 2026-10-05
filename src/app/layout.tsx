@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Nav } from "@/components/Nav";
+import { Sidebar } from "@/components/Sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
@@ -13,8 +13,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="zh-CN" suppressHydrationWarning>
       <body className="min-h-screen">
         <ThemeProvider>
-          <Nav />
-          <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+          <div className="md:pl-60">
+            <Sidebar />
+            <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
+          </div>
         </ThemeProvider>
       </body>
     </html>
