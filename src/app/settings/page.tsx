@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { setTheme } from "@/components/ThemeProvider";
+import { DashboardLayoutEditor } from "@/components/DashboardLayoutEditor";
 
 type BackupInfo = {
   dirName: string;
@@ -180,7 +181,7 @@ export default function SettingsPage() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {Object.entries({ 项目: stats.projects ?? 0, 比赛: stats.contests ?? 0, 连接: stats.connections ?? 0, 流水: stats.events ?? 0 }).map(
           ([label, n]) => (
-            <div key={label} className="rounded-xl border bg-white p-4">
+            <div key={label} className="card-fluid rounded-xl border bg-white p-4">
               <div className="text-sm text-slate-500">{label}</div>
               <div className="mt-1 text-3xl font-semibold">{n}</div>
             </div>
@@ -188,7 +189,7 @@ export default function SettingsPage() {
         )}
       </div>
 
-      <div className="rounded-xl border bg-white p-4">
+      <div className="card-fluid rounded-xl border bg-white p-4">
         <div className="flex items-center justify-between">
           <div>
             <div className="font-medium">一键备份</div>
@@ -204,7 +205,7 @@ export default function SettingsPage() {
         {msg && <div className="mt-3 text-sm">{msg}</div>}
       </div>
 
-      <div className="rounded-xl border bg-white p-4">
+      <div className="card-fluid rounded-xl border bg-white p-4">
         <div className="mb-1 font-medium">MCP 接入（让 AI 工具查工作台数据）</div>
         <p className="mb-3 text-xs text-slate-500">
           把下面片段粘贴到 Claude / CodeBuddy 等工具的 MCP 配置（mcp.json）里，AI 即可调用
@@ -217,12 +218,12 @@ export default function SettingsPage() {
             {copied ? "已复制 ✓" : "复制"}
           </button>
         </div>
-        <p className="mt-2 text-[11px] text-slate-400">
+        <p className="mt-2 text-xs text-slate-400">
           安全：stdio 本地管道、无网络端口；只读为主，add_event 仅追加备注流水。
         </p>
       </div>
 
-      <div className="rounded-xl border bg-white p-4">
+      <div className="card-fluid rounded-xl border bg-white p-4">
         <div className="mb-1 font-medium">凭据健康（M10）</div>
         <p className="mb-3 text-xs text-slate-500">
           工具卡的凭据引用覆盖率。引用只是「去哪里找」的路径提示，不含任何密码；正式的密钥保管请装 Bitwarden。
@@ -251,7 +252,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border bg-white p-4">
+      <div className="card-fluid rounded-xl border bg-white p-4">
         <div className="mb-1 font-medium">云端模型调用测试</div>
         <p className="mb-3 text-xs text-slate-500">
           API key 只从本地凭据文件读取，不入库、不回传。先把 key 写入一个本地文件，把路径填到「凭据文件」。
@@ -273,7 +274,7 @@ export default function SettingsPage() {
         {cloudResult && <div className="mt-3 whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm">{cloudResult}</div>}
       </div>
 
-      <div className="rounded-xl border bg-white p-4">
+      <div className="card-fluid rounded-xl border bg-white p-4">
         <div className="mb-1 font-medium">E 盘编号目录体检（只读）</div>
         <p className="mb-3 text-xs text-slate-500">
           检测同号多目录与疑似乱码目录。<span className="font-medium text-slate-700">只报告，不删除任何东西。</span>
@@ -317,7 +318,7 @@ export default function SettingsPage() {
         )}
       </div>
 
-      <div className="rounded-xl border bg-white p-4">
+      <div className="card-fluid rounded-xl border bg-white p-4">
         <div className="mb-1 font-medium">界面主题</div>
         <p className="mb-3 text-xs text-slate-500">选中的主题保存在本机浏览器，立即生效。</p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -348,7 +349,12 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border bg-white p-4">
+      <div className="card-fluid rounded-xl border bg-white p-4">
+        <div className="mb-1 font-medium">🧩 首页卡片布局（尺寸 / 顺序 / 显隐）</div>
+        <DashboardLayoutEditor />
+      </div>
+
+      <div className="card-fluid rounded-xl border bg-white p-4">
         <div className="mb-1 font-medium">赛博聚宝盆 · 资产导入</div>
         <p className="mb-3 text-xs text-slate-500">
           只读聚宝盆 <code className="rounded bg-slate-100 px-1">state.json</code>，把 skill / 程序类资产导入为雀台项目（expert/connector 类语义不明，暂不导入）。
@@ -367,7 +373,7 @@ export default function SettingsPage() {
         {importMsg && <div className="mt-3 text-sm">{importMsg}</div>}
       </div>
 
-      <div className="rounded-xl border bg-white p-4">
+      <div className="card-fluid rounded-xl border bg-white p-4">
         <div className="mb-3 font-medium">备份历史</div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">

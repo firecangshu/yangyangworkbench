@@ -5,6 +5,14 @@ import { useCallback, useEffect, useState } from "react";
 import { CONTEST_STATUS_LABELS, daysUntil } from "@/lib/constants";
 import { MonthCalendar } from "@/components/MonthCalendar";
 import { GanttView } from "@/components/GanttView";
+import {
+  DEFAULT_LAYOUT,
+  LAYOUT_EVENT,
+  SPAN_CLASS,
+  loadLayout,
+  type BlockCfg,
+  type BlockId,
+} from "@/lib/dashboard-layout";
 
 type Project = { id: number; name: string; status: string };
 type Deliverable = { id: number; contestId: number; name: string; done: boolean; doneAt: string | null };
@@ -54,7 +62,7 @@ function Icon({ d, size = "h-5 w-5" }: { d: string; size?: string }) {
 
 function Kpi({ label, value, icon, brand = false }: { label: string; value: number; icon: string; brand?: boolean }) {
   return (
-    <div className="rounded-xl border bg-white p-4">
+    <div className="card-fluid rounded-xl border bg-white p-4">
       <div className="flex items-center gap-3">
         <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${brand ? "bg-brand-soft text-brand" : "bg-slate-100 text-slate-500"}`}>
           <Icon d={icon} />
@@ -64,6 +72,19 @@ function Kpi({ label, value, icon, brand = false }: { label: string; value: numb
           <div className="mt-1 truncate text-xs text-slate-500">{label}</div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// 布局栅格里的一个卡片槽位：宽档 / 先后 / 显隐全部来自设置页里那份已「确定」的配置。
+// 首页本身不给拖拽手柄，避免误碰（要改组合请去 设置 → 首页卡片布局）。
+type Placed = BlockCfg & { order: number };
+
+function Block({ cfg, children }: { cfg?: Placed; children: React.ReactNode }) {
+  if (!cfg || !cfg.visible) return null;
+  return (
+    <div className={`min-w-0 ${SPAN_CLASS[cfg.size]}`} style={{ order: cfg.order }}>
+      {children}
     </div>
   );
 }
@@ -86,6 +107,16 @@ export default function Dashboard() {
   const [busyConn, setBusyConn] = useState<number | null>(null);
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [busyScene, setBusyScene] = useState<number | null>(null);
+  const [layout, setLayout] = useState<BlockCfg[]>(DEFAULT_LAYOUT);
+
+  // 首屏挂载后再读本机布局（SSR 与首帧都用默认表，避免 hydration 不一致）；
+  // 设置页点「确定并应用」会派发 LAYOUT_EVENT，首页不用刷新即可重排。
+  useEffect(() => {
+    const read = () => setLayout(loadLayout());
+    read();
+    window.addEventListener(LAYOUT_EVENT, read);
+    return () => window.removeEventListener(LAYOUT_EVENT, read);
+  }, []);
 
   useEffect(() => {
     setNow(new Date());
@@ -151,123 +182,139 @@ export default function Dashboard() {
   const recentEvents = events.slice(0, 8);
 
   const greeting = !now ? "" : now.getHours() < 6 ? "夜深了" : now.getHours() < 12 ? "早上好" : now.getHours() < 18 ? "下午好" : "晚上好";
+
+  // 卡片 id → 配置（含栅格排位），缺项由 Block 兜住不渲染。
+  const placed = layout.reduce<Partial<Record<BlockId, Placed>>>((acc, b, i) => {
+    acc[b.id] = { ...b, order: i };
+    return acc;
+  }, {});
   const clock = now ? now.toLocaleTimeString("zh-CN", { hour12: false }) : "--:--:--";
   const dateText = now ? now.toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric", weekday: "long" }) : "";
 
   return (
-    <div className="space-y-6">
-      {/* Hero：问候 + 实时时钟 + 内嵌月历（日历融入首卡，今日枢纽） */}
-      <div className="rounded-xl bg-sidebar p-6 text-sidebar-fg">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="text-2xl font-semibold">{greeting}{greeting ? "，" : ""}这里是杨杨的AI比赛专用工作台</div>
-            <p className="mt-1 text-sm text-sidebar-fg/70">连接本地内容与各种程序之间的桥梁</p>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs">
-              <span className="rounded-full bg-brand px-2.5 py-1 text-white">临近比赛 {nearCount} 场（7 天内）</span>
-              <span className="rounded-full bg-white/10 px-2.5 py-1">自动备份每日 21:00{latestBackup ? ` · 最新 ${latestBackup}` : ""}</span>
-              <span className="rounded-full bg-white/10 px-2.5 py-1">晨报每日 8:30</span>
+    /* M27：首页不再是写死顺序的长列，而是 12 列栅格 —— 每张卡的「宽度档位 / 先后可 / 显隐」
+       全部来自设置页里配好的那份布局（本机 localStorage），点确定后固定下来；首页上没有拖拽手柄，不会误碰。 */
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+      {/* 今日枢纽：问候 + 实时时钟 + 内嵌月历 */}
+      <Block cfg={placed.hero}>
+        <div className="card-fluid rounded-xl bg-sidebar p-6 text-sidebar-fg">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="text-2xl font-semibold">{greeting}{greeting ? "，" : ""}这里是杨杨的AI比赛专用工作台</div>
+              <p className="mt-1 text-sm text-sidebar-fg/70">连接本地内容与各种程序之间的桥梁</p>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                <span className="rounded-full bg-brand px-2.5 py-1 text-white">临近比赛 {nearCount} 场（7 天内）</span>
+                <span className="rounded-full bg-white/10 px-2.5 py-1">自动备份每日 21:00{latestBackup ? ` · 最新 ${latestBackup}` : ""}</span>
+                <span className="rounded-full bg-white/10 px-2.5 py-1">晨报每日 8:30</span>
+              </div>
+            </div>
+            <div className="shrink-0 text-left sm:text-right">
+              <div className="font-mono text-4xl font-semibold tracking-wider">{clock}</div>
+              <div className="mt-1 text-sm text-sidebar-fg/70">{dateText}</div>
+              <button onClick={() => window.dispatchEvent(new Event("open-assistant"))}
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-medium text-white hover:opacity-90">
+                🤖 问问 AI 助手
+              </button>
             </div>
           </div>
-          <div className="shrink-0 text-left sm:text-right">
-            <div className="font-mono text-4xl font-semibold tracking-wider">{clock}</div>
-            <div className="mt-1 text-sm text-sidebar-fg/70">{dateText}</div>
-            <button onClick={() => window.dispatchEvent(new Event("open-assistant"))}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-medium text-white hover:opacity-90">
-              🤖 问问 AI 助手
-            </button>
+          {/* 内嵌月历：白色面板浮于墨蓝之上，与首卡融为一体（节气/节日/农历/赛事标注与今天实心赤陶块均保留） */}
+          <div className="mt-5">
+            <MonthCalendar contests={contests} onPickDay={() => {}} />
           </div>
         </div>
-        {/* 内嵌月历：白色面板浮于墨蓝之上，与首卡融为一体（节气/节日/农历/赛事标注与今天实心赤陶块均保留） */}
-        <div className="mt-5">
-          <MonthCalendar contests={contests} onPickDay={() => {}} />
-        </div>
-      </div>
+      </Block>
 
       {/* 我的启动场景：一键并行拉起常用组合 */}
-      <div className="rounded-xl border bg-white p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="text-sm font-medium text-slate-600">🚀 我的启动场景（{scenes.length}）</span>
-          <Link href="/connections" className="text-xs text-blue-600 hover:underline">管理 / 新建 →</Link>
-        </div>
-        {scenes.length === 0 ? (
-          <p className="text-sm text-slate-400">
-            还没有场景。去「连接中心」把经常一起开的程序（含指定账号）存成组合，这里就能一键全部拉起。
-          </p>
-        ) : (
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3">
-            {scenes.map((s) => (
-              <div key={s.id} className="flex items-center justify-between gap-2 rounded-lg border bg-slate-50 p-3">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium">{s.name}</div>
-                  <div className="mt-0.5 truncate text-xs text-slate-500" title={sceneMembers(s)}>
-                    {sceneMembers(s) || "（空场景）"}
-                  </div>
-                </div>
-                <button onClick={() => fireScene(s)} disabled={busyScene === s.id}
-                  className="shrink-0 rounded-md bg-brand px-2.5 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50">
-                  {busyScene === s.id ? "拉起…" : "▶ 全部"}
-                </button>
-              </div>
-            ))}
+      <Block cfg={placed.scenes}>
+        <div className="card-fluid rounded-xl border bg-white p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-sm font-medium text-slate-600">🚀 我的启动场景（{scenes.length}）</span>
+            <Link href="/connections" className="text-xs text-blue-600 hover:underline">管理 / 新建 →</Link>
           </div>
-        )}
-      </div>
+          {scenes.length === 0 ? (
+            <p className="text-sm text-slate-400">
+              还没有场景。去「连接中心」把经常一起开的程序（含指定账号）存成组合，这里就能一键全部拉起。
+            </p>
+          ) : (
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3">
+              {scenes.map((s) => (
+                <div key={s.id} className="flex items-center justify-between gap-2 rounded-lg border bg-slate-50 p-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium">{s.name}</div>
+                    <div className="mt-0.5 truncate text-xs text-slate-500" title={sceneMembers(s)}>
+                      {sceneMembers(s) || "（空场景）"}
+                    </div>
+                  </div>
+                  <button onClick={() => fireScene(s)} disabled={busyScene === s.id}
+                    className="shrink-0 rounded-md bg-brand px-2.5 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50">
+                    {busyScene === s.id ? "拉起…" : "▶ 全部"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Block>
 
-      {/* KPI 行 */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        <Kpi label="已登记项目" value={projects.length} icon={FOLDER_ICON} brand />
-        {Object.entries(STATUS_LABELS).map(([k, label]) => (
-          <Kpi key={k} label={label} value={byStatus[k] ?? 0} icon={STATUS_ICONS[k]} />
-        ))}
-      </div>
+      {/* KPI 行：内层用 auto-fit，卡片被配成窄档时也不会挤成一团 */}
+      <Block cfg={placed.kpi}>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4">
+          <Kpi label="已登记项目" value={projects.length} icon={FOLDER_ICON} brand />
+          {Object.entries(STATUS_LABELS).map(([k, label]) => (
+            <Kpi key={k} label={label} value={byStatus[k] ?? 0} icon={STATUS_ICONS[k]} />
+          ))}
+        </div>
+      </Block>
 
       {/* 赛事总览：全部比赛，可切甘特 */}
-      <div className="rounded-xl border bg-white p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="text-sm font-medium text-slate-600">赛事总览（{contests.length} 场）</span>
-          <div className="flex items-center gap-2">
-            <div className="flex rounded-lg border p-0.5">
-              <button onClick={() => setMatchView("list")}
-                className={`rounded-md px-2.5 py-1 text-xs ${matchView === "list" ? "bg-brand text-white" : "text-slate-600"}`}>列表</button>
-              <button onClick={() => setMatchView("gantt")}
-                className={`rounded-md px-2.5 py-1 text-xs ${matchView === "gantt" ? "bg-brand text-white" : "text-slate-600"}`}>甘特</button>
+      <Block cfg={placed.contests}>
+        <div className="card-fluid rounded-xl border bg-white p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-sm font-medium text-slate-600">赛事总览（{contests.length} 场）</span>
+            <div className="flex items-center gap-2">
+              <div className="flex rounded-lg border p-0.5">
+                <button onClick={() => setMatchView("list")}
+                  className={`rounded-md px-2.5 py-1 text-xs ${matchView === "list" ? "bg-brand text-white" : "text-slate-600"}`}>列表</button>
+                <button onClick={() => setMatchView("gantt")}
+                  className={`rounded-md px-2.5 py-1 text-xs ${matchView === "gantt" ? "bg-brand text-white" : "text-slate-600"}`}>甘特</button>
+              </div>
+              <Link href="/contests" className="text-xs text-blue-600 hover:underline">管理 →</Link>
             </div>
-            <Link href="/contests" className="text-xs text-blue-600 hover:underline">管理 →</Link>
           </div>
+          {matchView === "gantt" ? (
+            <GanttView contests={contests} />
+          ) : (
+            <ul className="divide-y">
+              {allMatches.map((c) => {
+                const done = c.deliverables.filter((d) => d.done).length;
+                const days = daysUntil(c.deadline);
+                return (
+                  <li key={c.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="truncate font-medium">{c.name}</span>
+                      <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">
+                        {CONTEST_STATUS_LABELS[c.status] ?? c.status}
+                      </span>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3 text-xs text-slate-400">
+                      {c.deliverables.length > 0 && <span>交付 {done}/{c.deliverables.length}</span>}
+                      <span className={`font-semibold tabular-nums ${days !== null && days < 0 ? "text-slate-400" : days !== null && days <= 7 ? "text-red-600" : "text-blue-600"}`}>
+                        {days === null ? "待定" : days < 0 ? `过期${-days}天` : `剩 ${days} 天`}
+                      </span>
+                      <span>{c.deadline || "—"}</span>
+                    </div>
+                  </li>
+                );
+              })}
+              {allMatches.length === 0 && <li className="py-4 text-sm text-slate-400">暂无比赛</li>}
+            </ul>
+          )}
         </div>
-        {matchView === "gantt" ? (
-          <GanttView contests={contests} />
-        ) : (
-          <ul className="divide-y">
-            {allMatches.map((c) => {
-              const done = c.deliverables.filter((d) => d.done).length;
-              const days = daysUntil(c.deadline);
-              return (
-                <li key={c.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="truncate font-medium">{c.name}</span>
-                    <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">
-                      {CONTEST_STATUS_LABELS[c.status] ?? c.status}
-                    </span>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3 text-xs text-slate-400">
-                    {c.deliverables.length > 0 && <span>交付 {done}/{c.deliverables.length}</span>}
-                    <span className={`font-semibold tabular-nums ${days !== null && days < 0 ? "text-slate-400" : days !== null && days <= 7 ? "text-red-600" : "text-blue-600"}`}>
-                      {days === null ? "待定" : days < 0 ? `过期${-days}天` : `剩 ${days} 天`}
-                    </span>
-                    <span>{c.deadline || "—"}</span>
-                  </div>
-                </li>
-              );
-            })}
-            {allMatches.length === 0 && <li className="py-4 text-sm text-slate-400">暂无比赛</li>}
-          </ul>
-        )}
-      </div>
+      </Block>
 
-      {/* 两栏：常用程序 / 最近动态（月历已上移融入 Hero 首卡） */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-xl border bg-white p-4">
+      {/* 常用程序 Top6 */}
+      <Block cfg={placed.programs}>
+        <div className="card-fluid rounded-xl border bg-white p-4">
           <div className="mb-3 flex items-center justify-between">
             <span className="text-sm font-medium text-slate-600">常用程序 Top6</span>
             <Link href="/connections" className="text-xs text-blue-600 hover:underline">全部 →</Link>
@@ -290,8 +337,11 @@ export default function Dashboard() {
             {topPrograms.length === 0 && <li className="py-4 text-sm text-slate-400">暂无工具卡</li>}
           </ul>
         </div>
+      </Block>
 
-        <div className="rounded-xl border bg-white p-4">
+      {/* 最近动态 */}
+      <Block cfg={placed.events}>
+        <div className="card-fluid rounded-xl border bg-white p-4">
           <div className="mb-3 flex items-center justify-between">
             <span className="text-sm font-medium text-slate-600">最近动态</span>
             <Link href="/log" className="text-xs text-blue-600 hover:underline">全部 →</Link>
@@ -309,26 +359,28 @@ export default function Dashboard() {
             {recentEvents.length === 0 && <li className="py-4 text-sm text-slate-400">暂无动态</li>}
           </ul>
         </div>
-      </div>
+      </Block>
 
       {/* 项目进展 */}
-      <div className="rounded-xl border bg-white p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <span className="text-sm font-medium text-slate-600">项目进展（最近更新）</span>
-          <Link href="/projects" className="text-xs text-blue-600 hover:underline">全部 →</Link>
+      <Block cfg={placed.projects}>
+        <div className="card-fluid rounded-xl border bg-white p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-sm font-medium text-slate-600">项目进展（最近更新）</span>
+            <Link href="/projects" className="text-xs text-blue-600 hover:underline">全部 →</Link>
+          </div>
+          <ul className="divide-y">
+            {projects.slice(0, 5).map((p) => (
+              <li key={p.id} className="flex items-center justify-between py-2 text-sm">
+                <span className="truncate font-medium">{p.name}</span>
+                <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">{STATUS_LABELS[p.status] ?? p.status}</span>
+              </li>
+            ))}
+            {projects.length === 0 && (
+              <li className="py-4 text-sm text-slate-400">暂无数据，去「项目中枢」注册第一个项目</li>
+            )}
+          </ul>
         </div>
-        <ul className="divide-y">
-          {projects.slice(0, 5).map((p) => (
-            <li key={p.id} className="flex items-center justify-between py-2 text-sm">
-              <span className="truncate font-medium">{p.name}</span>
-              <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">{STATUS_LABELS[p.status] ?? p.status}</span>
-            </li>
-          ))}
-          {projects.length === 0 && (
-            <li className="py-4 text-sm text-slate-400">暂无数据，去「项目中枢」注册第一个项目</li>
-          )}
-        </ul>
-      </div>
+      </Block>
     </div>
   );
 }
