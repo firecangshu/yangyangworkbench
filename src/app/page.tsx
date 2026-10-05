@@ -16,6 +16,7 @@ type Contest = {
 };
 type Connection = { id: number; toolName: string; launchCommand: string; lastUsedAt: string | null };
 type EventRow = { id: number; ts: string; entityType: string; entityId: number; action: string; afterJson: string };
+type Scene = { id: number; name: string; items: { id: number; kind: string; refId: number }[] };
 
 const STATUS_LABELS: Record<string, string> = {
   incubating: "孵化中", dev: "开发中", submitted: "已提交", maintain: "维护中", done: "完结",
@@ -34,10 +35,12 @@ const FOLDER_ICON = "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a
 const ET_LABEL: Record<string, string> = {
   project: "项目", contest: "比赛", deliverable: "交付物", connection: "工具卡",
   connection_account: "账号", contest_project: "关联", sop_template: "SOP模板", backup: "备份",
+  launch_scene: "启动场景",
 };
 const ACT_LABEL: Record<string, string> = {
   create: "创建", update: "更新", delete: "删除", launch: "启动",
   apply_sop: "套用 SOP", credential_open: "定位凭据", import_jubao: "聚宝盆导入",
+  fire: "一键启动",
 };
 
 function Icon({ d, size = "h-5 w-5" }: { d: string; size?: string }) {
@@ -81,6 +84,8 @@ export default function Dashboard() {
   const [now, setNow] = useState<Date | null>(null);
   const [matchView, setMatchView] = useState<"list" | "gantt">("list");
   const [busyConn, setBusyConn] = useState<number | null>(null);
+  const [scenes, setScenes] = useState<Scene[]>([]);
+  const [busyScene, setBusyScene] = useState<number | null>(null);
 
   useEffect(() => {
     setNow(new Date());
@@ -93,6 +98,7 @@ export default function Dashboard() {
     fetch("/api/projects").then((r) => r.json()).then(setProjects);
     fetch("/api/connections").then((r) => r.json()).then(setConnections);
     fetch("/api/events").then((r) => r.json()).then(setEvents);
+    fetch("/api/scenes").then((r) => r.json()).then(setScenes);
     fetch("/api/backup").then((r) => r.json()).then((b) => {
       const auto = Array.isArray(b) ? b.filter((x: { dirName: string }) => x.dirName.startsWith("auto-")) : [];
       setLatestBackup(auto[0]?.dirName?.replace("auto-", "") ?? "");
@@ -106,6 +112,21 @@ export default function Dashboard() {
     setBusyConn(null);
     load();
   }
+
+  async function fireScene(s: Scene) {
+    setBusyScene(s.id);
+    const res = await fetch(`/api/scenes/${s.id}/fire`, { method: "POST" });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({ error: "启动失败" }));
+      window.alert(j.error ?? "启动失败");
+    }
+    setBusyScene(null);
+    load();
+  }
+
+  const connName = (id: number) => connections.find((c) => c.id === id)?.toolName ?? `#${id}`;
+  const sceneMembers = (s: Scene) =>
+    s.items.map((it) => (it.kind === "connection" ? connName(it.refId) : "指定账号")).join(" + ");
 
   const byStatus = projects.reduce<Record<string, number>>((acc, p) => {
     acc[p.status] = (acc[p.status] ?? 0) + 1;
@@ -149,7 +170,41 @@ export default function Dashboard() {
         <div className="shrink-0 text-left sm:text-right">
           <div className="font-mono text-4xl font-semibold tracking-wider">{clock}</div>
           <div className="mt-1 text-sm text-sidebar-fg/70">{dateText}</div>
+          <Link href="/assistant"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-medium text-white hover:opacity-90">
+            🤖 问问 AI 助手
+          </Link>
         </div>
+      </div>
+
+      {/* 我的启动场景：一键并行拉起常用组合 */}
+      <div className="rounded-xl border bg-white p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <span className="text-sm font-medium text-slate-600">🚀 我的启动场景（{scenes.length}）</span>
+          <Link href="/connections" className="text-xs text-blue-600 hover:underline">管理 / 新建 →</Link>
+        </div>
+        {scenes.length === 0 ? (
+          <p className="text-sm text-slate-400">
+            还没有场景。去「连接中心」把经常一起开的程序（含指定账号）存成组合，这里就能一键全部拉起。
+          </p>
+        ) : (
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
+            {scenes.map((s) => (
+              <div key={s.id} className="flex items-center justify-between gap-2 rounded-lg border bg-slate-50 p-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium">{s.name}</div>
+                  <div className="mt-0.5 truncate text-[11px] text-slate-500" title={sceneMembers(s)}>
+                    {sceneMembers(s) || "（空场景）"}
+                  </div>
+                </div>
+                <button onClick={() => fireScene(s)} disabled={busyScene === s.id}
+                  className="shrink-0 rounded-md bg-brand px-2.5 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50">
+                  {busyScene === s.id ? "拉起…" : "▶ 全部"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* KPI 行 */}
