@@ -64,7 +64,7 @@ export function MonthCalendar({
           <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-brand-soft text-sm">📅</span>
           <div className="leading-tight">
             <div className="text-sm font-semibold">{monthLabel}</div>
-            <div className="text-[11px] text-slate-400">{yearLabel}</div>
+            <div className="text-xs text-slate-400">{yearLabel}</div>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -90,14 +90,14 @@ export function MonthCalendar({
           </button>
         </div>
       </div>
-      <div className="grid grid-cols-7 gap-1 text-center text-[11px] text-slate-400">
+      <div className="grid grid-cols-7 gap-1 text-center text-xs text-slate-400">
         {WEEK.map((w) => (
           <div key={w} className="py-0.5">{w}</div>
         ))}
       </div>
       <div className="grid grid-cols-7 gap-1">
         {cells.map((d, i) => {
-          if (!d) return <div key={`e${i}`} className="min-h-[56px] rounded-lg bg-slate-50/60" />;
+          if (!d) return <div key={`e${i}`} className="min-h-[64px] rounded-lg bg-slate-50/60" />;
           const key = ymd(d);
           const items = byDay.get(key) ?? [];
           const isToday = key === todayStr;
@@ -106,28 +106,28 @@ export function MonthCalendar({
             <button
               key={key}
               onClick={() => onPickDay?.(key, items)}
-              className={`flex min-h-[56px] flex-col rounded-lg p-1 text-left align-top transition ${
+              className={`flex min-h-[64px] flex-col rounded-lg p-1.5 text-left align-top transition ${
                 isToday ? "bg-brand text-white shadow-[0_3px_8px_rgba(217,83,79,0.3)]" : "bg-slate-50/60 hover:bg-slate-100"
               }`}
             >
               <div className="flex items-baseline justify-between">
-                <span className={`text-[11px] ${isToday ? "font-bold text-white" : "text-slate-500"}`}>
+                <span className={`text-sm font-semibold tabular-nums ${isToday ? "text-white" : "text-slate-600"}`}>
                   {d.getDate()}
                 </span>
-                <span className={`text-[9px] leading-none ${isToday ? "text-white/70" : "text-slate-300"}`}>{mark.lunarDay}</span>
+                <span className={`text-xs leading-none ${isToday ? "text-white/80" : "text-slate-400"}`}>{mark.lunarDay}</span>
               </div>
               {mark.festivals.length > 0 && (
-                <div className={`truncate text-[10px] font-medium leading-tight ${isToday ? "text-white" : "text-amber-600"}`} title={mark.festivals.join("・")}>
+                <div className={`truncate text-xs font-medium leading-snug ${isToday ? "text-white" : "text-amber-600"}`} title={mark.festivals.join("・")}>
                   {mark.festivals[0]}
                 </div>
               )}
               {mark.jieqi && (
-                <div className={`truncate text-[10px] leading-tight ${isToday ? "text-white/90" : "text-teal-600"}`}>{mark.jieqi}</div>
+                <div className={`truncate text-xs leading-snug ${isToday ? "text-white/90" : "text-teal-600"}`}>{mark.jieqi}</div>
               )}
               {items.map((c) => (
                 <div
                   key={c.id}
-                  className={`mt-0.5 truncate rounded px-1 text-[10px] leading-tight ${isToday ? "bg-white/20 text-white" : "bg-brand-soft text-brand"}`}
+                  className={`mt-0.5 truncate rounded px-1 text-xs leading-snug ${isToday ? "bg-white/20 text-white" : "bg-brand-soft text-brand"}`}
                   title={`${c.name}（截止）`}
                 >
                   ◈ {c.name}
@@ -137,7 +137,7 @@ export function MonthCalendar({
           );
         })}
       </div>
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-slate-400">
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
         <span><span className="text-brand">■</span> 今天</span>
         <span><span className="text-amber-600">■</span> 节日</span>
         <span><span className="text-teal-600">■</span> 节气</span>

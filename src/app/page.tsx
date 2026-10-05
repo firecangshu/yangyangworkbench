@@ -162,7 +162,7 @@ export default function Dashboard() {
           <div>
             <div className="text-2xl font-semibold">{greeting}{greeting ? "，" : ""}这里是杨杨的AI比赛专用工作台</div>
             <p className="mt-1 text-sm text-sidebar-fg/70">连接本地内容与各种程序之间的桥梁</p>
-            <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
               <span className="rounded-full bg-brand px-2.5 py-1 text-white">临近比赛 {nearCount} 场（7 天内）</span>
               <span className="rounded-full bg-white/10 px-2.5 py-1">自动备份每日 21:00{latestBackup ? ` · 最新 ${latestBackup}` : ""}</span>
               <span className="rounded-full bg-white/10 px-2.5 py-1">晨报每日 8:30</span>
@@ -199,7 +199,7 @@ export default function Dashboard() {
               <div key={s.id} className="flex items-center justify-between gap-2 rounded-lg border bg-slate-50 p-3">
                 <div className="min-w-0">
                   <div className="truncate text-sm font-medium">{s.name}</div>
-                  <div className="mt-0.5 truncate text-[11px] text-slate-500" title={sceneMembers(s)}>
+                  <div className="mt-0.5 truncate text-xs text-slate-500" title={sceneMembers(s)}>
                     {sceneMembers(s) || "（空场景）"}
                   </div>
                 </div>
@@ -246,7 +246,7 @@ export default function Dashboard() {
                 <li key={c.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
                   <div className="flex min-w-0 items-center gap-2">
                     <span className="truncate font-medium">{c.name}</span>
-                    <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">
+                    <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">
                       {CONTEST_STATUS_LABELS[c.status] ?? c.status}
                     </span>
                   </div>
@@ -277,13 +277,13 @@ export default function Dashboard() {
               <li key={c.id} className="flex items-center gap-2 rounded-md bg-slate-50 px-2 py-1.5 text-sm">
                 <span className="w-4 shrink-0 text-center text-xs font-semibold text-slate-300">{i + 1}</span>
                 <span className="min-w-0 flex-1 truncate">{c.toolName}</span>
-                <span className="shrink-0 text-[10px] text-slate-400">
+                <span className="shrink-0 text-xs text-slate-400">
                   {c.lastUsedAt ? new Date(c.lastUsedAt).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" }) : "未用"}
                 </span>
                 {c.launchCommand && (
                   <button onClick={() => launchConn(c)} disabled={busyConn === c.id}
                     title="一键调起"
-                    className="shrink-0 rounded bg-brand px-1.5 py-0.5 text-[10px] text-white hover:opacity-90 disabled:opacity-50">▶</button>
+                    className="shrink-0 rounded bg-brand px-1.5 py-0.5 text-xs text-white hover:opacity-90 disabled:opacity-50">▶</button>
                 )}
               </li>
             ))}
@@ -321,7 +321,7 @@ export default function Dashboard() {
           {projects.slice(0, 5).map((p) => (
             <li key={p.id} className="flex items-center justify-between py-2 text-sm">
               <span className="truncate font-medium">{p.name}</span>
-              <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">{STATUS_LABELS[p.status] ?? p.status}</span>
+              <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">{STATUS_LABELS[p.status] ?? p.status}</span>
             </li>
           ))}
           {projects.length === 0 && (
