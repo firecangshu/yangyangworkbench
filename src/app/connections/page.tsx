@@ -326,7 +326,7 @@ export default function ConnectionsPage() {
         )}
 
         {scenes.length > 0 && (
-          <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
+          <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-3">
             {scenes.map((s) => (
               <div key={s.id} className="rounded-lg border bg-slate-50 p-3">
                 <div className="flex items-start justify-between gap-2">
@@ -385,8 +385,8 @@ export default function ConnectionsPage() {
         )}
       </div>
 
-      {/* 卡墙流式自适应：随窗口宽度自动决定列数，卡片最小 280px 铺满不留白 */}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
+      {/* 卡墙流式自适应：auto-fit 空轨道会收缩，末行不满时卡片自动拉宽铺满、不留右侧空漏 */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-4">
         {shown.map((c) => (
           <div key={c.id} className="flex flex-col rounded-xl border bg-white p-4">
             <div className="flex items-start justify-between gap-2">
@@ -402,11 +402,11 @@ export default function ConnectionsPage() {
             <p className="mt-2 line-clamp-2 text-xs text-slate-500">{c.accountNotes || "—"}</p>
             {c.credentialRef && (
               <button onClick={() => openCredential(c)} title={`定位：${c.credentialRef}`}
-                className="mt-1 block max-w-full truncate text-left text-[11px] text-slate-400 hover:text-blue-600 hover:underline">
+                className="mt-1 block max-w-full truncate text-left text-xs text-slate-400 hover:text-blue-600 hover:underline">
                 凭据引用：{c.credentialRef}（点击定位 ↗）
               </button>
             )}
-            {c.tags && <p className="mt-1 text-[11px] text-slate-400">{c.tags}</p>}
+            {c.tags && <p className="mt-1 text-xs text-slate-400">{c.tags}</p>}
             {acctOpen === c.id && (
               <div className="mt-2 rounded-lg border bg-slate-50 p-2">
                 <div className="text-[11px] font-medium text-slate-500">账号条目（一号一命令，点 ▶ 启动该号）</div>
@@ -431,8 +431,8 @@ export default function ConnectionsPage() {
                 </div>
               </div>
             )}
-            <div className="mt-3 flex items-center justify-between pt-2">
-              <span className="text-[10px] text-slate-300">
+            <div className="mt-auto flex items-center justify-between border-t pt-2">
+              <span className="text-xs tabular-nums text-slate-400">
                 {c.lastUsedAt ? `使用过 ${new Date(c.lastUsedAt).toLocaleDateString("zh-CN")}` : "未使用"}
               </span>
               <div className="flex items-center gap-1.5">

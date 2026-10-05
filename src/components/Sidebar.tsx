@@ -21,14 +21,14 @@ function Icon({ d }: { d: string }) {
   );
 }
 
-export function Sidebar() {
+export function Sidebar({ width = 240 }: { width?: number }) {
   const pathname = usePathname();
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   return (
     <>
-      {/* 桌面侧边栏 */}
-      <aside className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col bg-sidebar text-sidebar-fg md:flex">
+      {/* 桌面侧边栏：宽屏(md+)作为可拖工作区的一栏（sticky 全高、shrink-0、宽度由 WorkspaceShell 拖动控制） */}
+      <aside style={{ width }} className="sticky top-0 z-10 hidden h-screen shrink-0 flex-col bg-sidebar text-sidebar-fg md:flex">
         <div className="flex items-center gap-3 px-5 pb-5 pt-6">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand text-lg font-bold text-white">杨</span>
           <div>

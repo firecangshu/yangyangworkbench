@@ -14,7 +14,7 @@ const QUICK = [
 // 全站常驻的 AI 助手（M17 综合布局版）：作为工作区一栏，而非悬浮遮罩。
 // 宽屏(lg+)固定在右侧成独立一栏（sticky 全高，内容再长也并排不重叠）；
 // 窄屏落到主内容下方，仍在文档流内，绝不遮挡卡片。
-export function AssistantDock() {
+export function AssistantDock({ width = 360 }: { width?: number }) {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [provider, setProvider] = useState("glm");
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -79,7 +79,8 @@ export function AssistantDock() {
   return (
     <aside
       ref={asideRef}
-      className="flex w-full shrink-0 flex-col border-t bg-white lg:sticky lg:top-0 lg:h-screen lg:w-[22rem] lg:border-t-0 lg:border-l"
+      style={{ ["--dw" as string]: `${width}px` } as React.CSSProperties}
+      className="flex w-full shrink-0 flex-col border-t bg-white lg:sticky lg:top-0 lg:h-screen lg:w-[var(--dw)] lg:border-t-0 lg:border-l"
     >
       {/* 标题栏 */}
       <div className="flex items-center justify-between gap-2 border-b bg-slate-50 px-4 py-3">

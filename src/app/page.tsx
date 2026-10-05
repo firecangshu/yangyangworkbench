@@ -60,7 +60,7 @@ function Kpi({ label, value, icon, brand = false }: { label: string; value: numb
           <Icon d={icon} />
         </span>
         <div className="min-w-0">
-          <div className="text-2xl font-semibold leading-none">{value}</div>
+          <div className="text-2xl font-semibold leading-none tabular-nums">{value}</div>
           <div className="mt-1 truncate text-xs text-slate-500">{label}</div>
         </div>
       </div>
@@ -188,7 +188,7 @@ export default function Dashboard() {
             还没有场景。去「连接中心」把经常一起开的程序（含指定账号）存成组合，这里就能一键全部拉起。
           </p>
         ) : (
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3">
             {scenes.map((s) => (
               <div key={s.id} className="flex items-center justify-between gap-2 rounded-lg border bg-slate-50 p-3">
                 <div className="min-w-0">
@@ -246,7 +246,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex shrink-0 items-center gap-3 text-xs text-slate-400">
                     {c.deliverables.length > 0 && <span>交付 {done}/{c.deliverables.length}</span>}
-                    <span className={`font-semibold ${days !== null && days < 0 ? "text-slate-400" : days !== null && days <= 7 ? "text-red-600" : "text-blue-600"}`}>
+                    <span className={`font-semibold tabular-nums ${days !== null && days < 0 ? "text-slate-400" : days !== null && days <= 7 ? "text-red-600" : "text-blue-600"}`}>
                       {days === null ? "待定" : days < 0 ? `过期${-days}天` : `剩 ${days} 天`}
                     </span>
                     <span>{c.deadline || "—"}</span>

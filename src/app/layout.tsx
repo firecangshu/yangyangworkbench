@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Sidebar } from "@/components/Sidebar";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { AssistantDock } from "@/components/AssistantDock";
+import { WorkspaceShell } from "@/components/WorkspaceShell";
 
 export const metadata: Metadata = {
   title: "杨杨的AI比赛专用工作台",
@@ -14,13 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="zh-CN" suppressHydrationWarning>
       <body className="min-h-screen">
         <ThemeProvider>
-          <div className="md:pl-60">
-            <Sidebar />
-            <div className="flex min-h-screen flex-col lg:flex-row">
-              <main className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-6 py-8">{children}</main>
-              <AssistantDock />
-            </div>
-          </div>
+          <WorkspaceShell>{children}</WorkspaceShell>
         </ThemeProvider>
       </body>
     </html>

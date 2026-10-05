@@ -15,6 +15,15 @@ body {
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
 }
 
+/* Tailwind v4 里裸 `border` 默认 border-color=currentColor（深黑、与暖灰底不呼应）。
+   这里给全站一个浅色默认描边（取 --line 令牌）；语义彩色框 border-<color> 位于 utilities 层，
+   优先级高于本 base 规则会自动覆盖，红/蓝/琥珀等语义边框不受影响。 */
+*,
+::before,
+::after {
+  border-color: var(--line);
+}
+
 /* ============ 品牌令牌（M14 · 融合社工星火设计语言） ============ */
 /* base 值即 spark 星火主题：赤陶主色 #D9534F + 墨蓝侧边栏 #2C3E50 */
 .bg-sidebar { background: #2c3e50; }
