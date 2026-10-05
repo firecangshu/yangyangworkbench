@@ -1,10 +1,11 @@
 // 多尺寸 .ico 打包器：源图（SVG/PNG 皆可）→ sharp 缩放 → PNG 内嵌 ICO 容器（Vista+ 标准）
 // 用法: node assets/make-ico.mjs
-// M17 定稿：紫青闪电（豆包设计，用户拍板）；旧 C2 方案源仍在 assets/logo/concepts/ 可回退
+// M17 定稿：紫青闪电（豆包设计，用户拍板）；源图白底已经 make-transparent.mjs 抠成透明；
+// 完整重建链：先 node assets/make-transparent.mjs 再跑本脚本。旧 C2 方案源在 assets/logo/concepts/ 可回退
 import sharp from "sharp";
 import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from "fs";
 
-const SRC = "assets/logo/app-icon-bolt-1024.png";
+const SRC = "assets/logo/app-icon-bolt-1024-alpha.png";
 const SIZES = [16, 24, 32, 48, 64, 128, 256];
 
 const pngs = [];
