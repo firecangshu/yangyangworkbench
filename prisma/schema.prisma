@@ -107,3 +107,22 @@ model EventLog {
   beforeJson String   @default("{}") @map("before_json")
   afterJson  String   @default("{}") @map("after_json")
 }
+
+model LaunchScene {
+  id        Int             @id @default(autoincrement())
+  name      String
+  notes     String          @default("")
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+  items     LaunchSceneItem[]
+}
+
+model LaunchSceneItem {
+  id        Int         @id @default(autoincrement())
+  sceneId   Int         @map("scene_id")
+  kind      String      // connection | account
+  refId     Int         @map("ref_id")
+  sortOrder Int         @default(0) @map("sort_order")
+  scene     LaunchScene @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+  @@unique([sceneId, kind, refId])
+}

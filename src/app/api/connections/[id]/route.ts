@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { logEvent } from "@/lib/events";
-import { connectionJSON } from "../route";
+import { connectionJSON } from "@/lib/serializers";
 
 const VALID_STATUS = ["active", "inactive", "pending"];
 

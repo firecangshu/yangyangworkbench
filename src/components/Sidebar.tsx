@@ -8,6 +8,7 @@ const links = [
   { href: "/projects", label: "项目中枢", icon: "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" },
   { href: "/contests", label: "比赛追踪", icon: "M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4ZM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3" },
   { href: "/connections", label: "连接中心", icon: "M9 7V3m6 4V3M6 7h12v4a6 6 0 0 1-12 0V7Zm3 12h6" },
+  { href: "/assistant", label: "AI 助手", icon: "M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-7a3 3 0 0 1 3-3h1V6a4 4 0 0 1 4-4Zm-3 11h.01M15 13h.01M9 17h6" },
   { href: "/log", label: "操作流水", icon: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" },
   { href: "/settings", label: "设置", icon: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7.5 7.5 0 0 0-2-1.2L14.5 2h-4l-.4 2.6a7.5 7.5 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7.5 7.5 0 0 0 2 1.2l.4 2.6h4l.4-2.6a7.5 7.5 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2Z" },
 ];
@@ -30,9 +31,9 @@ export function Sidebar() {
       {/* 桌面侧边栏 */}
       <aside className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col bg-sidebar text-sidebar-fg md:flex">
         <div className="flex items-center gap-3 px-5 pb-5 pt-6">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand text-lg font-bold text-white">T</span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand text-lg font-bold text-white">杨</span>
           <div>
-            <div className="text-lg font-semibold leading-tight">tagex的工作台</div>
+            <div className="text-lg font-semibold leading-tight">杨杨的AI比赛专用工作台</div>
             <div className="text-[11px] text-sidebar-fg/60">连接本地与程序的中枢</div>
           </div>
         </div>

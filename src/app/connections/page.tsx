@@ -25,6 +25,13 @@ type Connection = {
   accounts: ConnectionAccount[];
 };
 
+type Scene = {
+  id: number;
+  name: string;
+  notes: string;
+  items: { id: number; sceneId: number; kind: string; refId: number; sortOrder: number }[];
+};
+
 const CATEGORY_LABELS: Record<string, string> = {
   coding: "AI 编程",
   agent: "智能体平台",
@@ -68,9 +75,13 @@ export default function ConnectionsPage() {
   const [error, setError] = useState("");
   const [acctOpen, setAcctOpen] = useState<number | null>(null);
   const [acctForm, setAcctForm] = useState({ label: "", cmd: "" });
+  const [scenes, setScenes] = useState<Scene[]>([]);
+  const [sceneEdit, setSceneEdit] = useState<{ id: number | null; name: string; items: string[] } | null>(null);
+  const [rotateCursor, setRotateCursor] = useState<Record<number, number>>({});
 
   const load = useCallback(() => {
     fetch("/api/connections").then((r) => r.json()).then(setConnections);
+    fetch("/api/scenes").then((r) => r.json()).then(setScenes);
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -176,6 +187,66 @@ export default function ConnectionsPage() {
     touch(c.id);
   }
 
+  /* ---------- M17 启动场景 ---------- */
+
+  // 可启动目标清单：有启动命令的卡 + 卡内有命令的账号
+  const launchables = connections.flatMap((c) => [
+    ...(c.launchCommand.trim() ? [{ key: `connection:${c.id}`, label: c.toolName }] : []),
+    ...c.accounts.filter((a) => a.launchCommand.trim()).map((a) => ({ key: `account:${a.id}`, label: `${c.toolName} · ${a.label}` })),
+  ]);
+  const launchableLabel = (kind: string, refId: number) =>
+    launchables.find((l) => l.key === `${kind}:${refId}`)?.label ?? `${kind}#${refId}`;
+
+  async function fireScene(s: Scene) {
+    const res = await fetch(`/api/scenes/${s.id}/fire`, { method: "POST" });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({ error: "启动失败" }));
+      window.alert(j.error ?? "启动失败");
+      return;
+    }
+    load();
+  }
+
+  function editScene(s: Scene) {
+    setSceneEdit({ id: s.id, name: s.name, items: s.items.map((it) => `${it.kind}:${it.refId}`) });
+  }
+
+  async function deleteScene(s: Scene) {
+    if (!window.confirm(`确认删除场景「${s.name}」？（只删台账，不影响程序本身）`)) return;
+    await fetch(`/api/scenes/${s.id}`, { method: "DELETE" });
+    load();
+  }
+
+  async function saveScene() {
+    if (!sceneEdit) return;
+    if (!sceneEdit.name.trim()) { setError("场景名称是必填项"); return; }
+    setError("");
+    const body = JSON.stringify({
+      name: sceneEdit.name,
+      items: sceneEdit.items.map((k) => ({ kind: k.split(":")[0], refId: Number(k.split(":")[1]) })),
+    });
+    const url = sceneEdit.id ? `/api/scenes/${sceneEdit.id}` : "/api/scenes";
+    const res = await fetch(url, { method: sceneEdit.id ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, body });
+    if (!res.ok) { setError((await res.json()).error ?? "保存失败"); return; }
+    setSceneEdit(null);
+    load();
+  }
+
+  /* ---------- M17 卡内轮切：点一次按顺序拉起下一个有命令的账号，循环 ---- */
+  async function rotateNext(c: Connection) {
+    const pool = c.accounts.filter((a) => a.launchCommand.trim());
+    if (pool.length === 0) { setError(`「${c.toolName}」的账号还没有配启动命令`); return; }
+    const idx = ((rotateCursor[c.id] ?? -1) + 1) % pool.length;
+    setRotateCursor({ ...rotateCursor, [c.id]: idx });
+    const res = await fetch(`/api/accounts/${pool[idx].id}/launch`, { method: "POST" });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({ error: "启动失败" }));
+      window.alert(j.error ?? "启动失败");
+      return;
+    }
+    load();
+  }
+
   const shown = filter === "all" ? connections : connections.filter((c) => c.category === filter);
 
   return (
@@ -194,6 +265,10 @@ export default function ConnectionsPage() {
           {showForm ? "收起表单" : "+ 添加工具"}
         </button>
       </div>
+
+      {error && !showForm && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{error}</div>
+      )}
 
       {showForm && (
         <div className="rounded-xl border bg-white p-4">
@@ -234,7 +309,84 @@ export default function ConnectionsPage() {
         ))}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* M17 启动场景：一键并行拉起常用组合 */}
+      <div className="rounded-xl border bg-white p-4">
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-medium text-slate-700">🚀 启动场景（一键并行拉起一组程序+指定账号）</div>
+          <button
+            onClick={() => setSceneEdit({ id: null, name: "", items: [] })}
+            className="rounded-lg border border-blue-200 px-3 py-1.5 text-xs text-blue-600 hover:bg-blue-50"
+          >
+            + 新建场景
+          </button>
+        </div>
+
+        {scenes.length === 0 && !sceneEdit && (
+          <p className="mt-2 text-xs text-slate-400">还没有场景。把经常一起开的程序（含指定账号）存成组合，点一下全部拉起。</p>
+        )}
+
+        {scenes.length > 0 && (
+          <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3">
+            {scenes.map((s) => (
+              <div key={s.id} className="rounded-lg border bg-slate-50 p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium">{s.name}</div>
+                    <div className="mt-0.5 text-[11px] text-slate-500">
+                      {s.items.map((it) => launchableLabel(it.kind, it.refId)).join(" + ") || "（空场景）"}
+                    </div>
+                  </div>
+                  <button onClick={() => fireScene(s)} title="一键并行启动"
+                    className="shrink-0 rounded-md bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-700">
+                    ▶ 启动全部
+                  </button>
+                </div>
+                <div className="mt-2 flex gap-2 text-[11px]">
+                  <button onClick={() => editScene(s)} className="text-slate-400 hover:text-blue-600">编辑</button>
+                  <button onClick={() => deleteScene(s)} className="text-slate-400 hover:text-red-500">删除</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {sceneEdit && (
+          <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50/40 p-3">
+            <input className="w-full rounded-lg border bg-white px-3 py-2 text-sm"
+              placeholder="场景名称 *（如：比赛日三件套）"
+              value={sceneEdit.name}
+              onChange={(e) => setSceneEdit({ ...sceneEdit, name: e.target.value })} />
+            <div className="mt-2 text-[11px] font-medium text-slate-500">勾选要一起启动的程序 / 账号（按勾选顺序依次拉起）：</div>
+            {launchables.length === 0 && (
+              <p className="mt-1 text-[11px] text-amber-700">还没有可启动的目标——先给工具卡或账号配好启动命令（⚙ 或 账号▾）。</p>
+            )}
+            <div className="mt-1 max-h-44 overflow-y-auto rounded-lg border bg-white p-2">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-1">
+                {launchables.map((l) => (
+                  <label key={l.key} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                    <input type="checkbox"
+                      checked={sceneEdit.items.includes(l.key)}
+                      onChange={(e) => setSceneEdit({
+                        ...sceneEdit,
+                        items: e.target.checked ? [...sceneEdit.items, l.key] : sceneEdit.items.filter((k) => k !== l.key),
+                      })} />
+                    <span className="truncate">{l.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="mt-2 flex gap-2">
+              <button onClick={saveScene}
+                className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs text-white hover:bg-slate-700">保存场景</button>
+              <button onClick={() => setSceneEdit(null)}
+                className="rounded-lg border bg-white px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-50">取消</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 卡墙流式自适应：随窗口宽度自动决定列数，卡片最小 280px 铺满不留白 */}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
         {shown.map((c) => (
           <div key={c.id} className="flex flex-col rounded-xl border bg-white p-4">
             <div className="flex items-start justify-between gap-2">
@@ -294,6 +446,13 @@ export default function ConnectionsPage() {
                   className="rounded-md border px-2.5 py-1 text-xs hover:bg-slate-50">
                   {c.entryUrl ? "打开 ↗" : "说明"}
                 </button>
+                {c.accounts.some((a) => a.launchCommand.trim()) && (
+                  <button onClick={() => rotateNext(c)}
+                    title={`轮切到下一个账号（当前第 ${((rotateCursor[c.id] ?? -1) + 1) % (c.accounts.filter((a) => a.launchCommand.trim()).length || 1) + 1} 号，共 ${c.accounts.filter((a) => a.launchCommand.trim()).length} 号）`}
+                    className="rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-emerald-700">
+                    🔄 换下一号
+                  </button>
+                )}
                 <button onClick={() => toggleAcct(c)}
                   title="卡内多账号切换"
                   className={`rounded-md border px-2 py-1 text-xs ${acctOpen === c.id ? "border-blue-400 text-blue-600" : "text-slate-500 hover:bg-slate-50"}`}>

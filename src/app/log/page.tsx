@@ -17,6 +17,8 @@ const ACTION_LABELS: Record<string, string> = {
   update: "修改",
   delete: "删除",
   open_dir: "打开目录",
+  fire: "一键启动",
+  launch: "启动",
 };
 
 function tryParse(s: string): Record<string, unknown> | null {
@@ -73,6 +75,9 @@ export default function LogPage() {
                     {new Date(e.ts).toLocaleString("zh-CN", { hour12: false })}
                   </td>
                   <td className="px-4 py-3 text-xs">
+                    <span className="mr-1 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">
+                      {{ project: "项目", contest: "比赛", connection: "工具卡", sop: "SOP", launch_scene: "启动场景", account: "账号" }[e.entityType] ?? e.entityType}
+                    </span>
                     #{e.entityId}
                     {after?.name || before?.name ? ` ${String(after?.name ?? before?.name)}` : ""}
                   </td>

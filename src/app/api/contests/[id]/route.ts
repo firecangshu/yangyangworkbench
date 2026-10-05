@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { logEvent, projectJSON } from "@/lib/events";
-import { contestJSON } from "../route";
+import { contestJSON } from "@/lib/serializers";
 
 const VALID_STATUS = ["research", "registered", "preparing", "submitted", "won", "lost", "cancelled", "expired"];
 

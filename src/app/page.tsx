@@ -138,7 +138,7 @@ export default function Dashboard() {
       {/* Hero：问候 + 实时时钟 */}
       <div className="flex flex-col gap-4 rounded-xl bg-sidebar p-6 text-sidebar-fg sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="text-2xl font-semibold">{greeting}{greeting ? "，" : ""}这里是 tagex 的工作台</div>
+          <div className="text-2xl font-semibold">{greeting}{greeting ? "，" : ""}这里是杨杨的AI比赛专用工作台</div>
           <p className="mt-1 text-sm text-sidebar-fg/70">连接本地内容与各种程序之间的桥梁</p>
           <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
             <span className="rounded-full bg-brand px-2.5 py-1 text-white">临近比赛 {nearCount} 场（7 天内）</span>

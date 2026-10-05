@@ -1,15 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { logEvent } from "@/lib/events";
-
-export const connectionJSON = (c: {
-  id: number; toolName: string; category: string; entryUrl: string;
-  accountNotes: string; credentialRef: string; launchCommand: string; status: string; tags: string; notes: string;
-}) => ({
-  id: c.id, toolName: c.toolName, category: c.category, entryUrl: c.entryUrl,
-  accountNotes: c.accountNotes, credentialRef: c.credentialRef, launchCommand: c.launchCommand,
-  status: c.status, tags: c.tags, notes: c.notes,
-});
+import { connectionJSON } from "@/lib/serializers";
 
 export async function GET() {
   const connections = await prisma.connection.findMany({

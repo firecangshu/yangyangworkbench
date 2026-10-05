@@ -1,14 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { logEvent, projectJSON } from "@/lib/events";
-
-export const contestJSON = (c: {
-  id: number; name: string; organizer: string; track: string;
-  startDate: string; deadline: string; status: string; submitLink: string; notes: string;
-}) => ({
-  id: c.id, name: c.name, organizer: c.organizer, track: c.track,
-  startDate: c.startDate, deadline: c.deadline, status: c.status, submitLink: c.submitLink, notes: c.notes,
-});
+import { contestJSON } from "@/lib/serializers";
 
 export async function GET() {
   const contests = await prisma.contest.findMany({
