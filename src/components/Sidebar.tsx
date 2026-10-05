@@ -48,7 +48,7 @@ export function Sidebar() {
           ))}
         </nav>
         <div className="px-5 pb-5 text-[11px] text-sidebar-fg/50">
-          <div>M13 · 本地优先 · 数据在本机</div>
+          <div>M16 · 本地优先 · 数据在本机</div>
           <div className="mt-0.5">晨报 8:30 · 备份 21:00</div>
         </div>
       </aside>
