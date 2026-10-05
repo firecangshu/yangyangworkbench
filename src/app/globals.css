@@ -46,10 +46,10 @@ body {
   border-color: var(--line);
 }
 
-/* ============ M26 字号 ↔ 卡片尺寸 成比例 ============
+/* ============ M26 字号 ↔ 卡片尺寸 成比例（M28 叠加每卡字号档 --card-fs） ============
    卡片壳带 .card-fluid 即成为宽度容器（container-type: inline-size）；
-   卡内每个 text-* 字号改由「卡片自身宽度的 1%（cqi）」计算：
-   · 下限 = M25 的全站基线值 —— 卡片缩到多小都不会低于它（可读性锁死）
+   卡内每个 text-* 字号由「卡片自身宽度的 1%（cqi）」计算，再乘上这张卡在设置页里选的字号档 --card-fs：
+   · 下限 = M25 的全站基线值 x 档倍率 —— 卡片缩到多小都不会低于它（可读锁死）
    · 上限 = 大卡里不至于糊成一片
    于是一张卡的标题/正文/元信息永远按同一比例伸缩，不会出现「卡大字小」或「卡小字爆」。 */
 @layer base {
@@ -60,28 +60,28 @@ body {
 
 @layer utilities {
   .card-fluid .text-xs {
-    font-size: clamp(0.875rem, 2.4cqi, 1.0625rem);
+    font-size: calc(clamp(0.875rem, 2.4cqi, 1.0625rem) * var(--card-fs, 1));
   }
   .card-fluid .text-sm {
-    font-size: clamp(1rem, 3cqi, 1.25rem);
+    font-size: calc(clamp(1rem, 3cqi, 1.25rem) * var(--card-fs, 1));
   }
   .card-fluid .text-base {
-    font-size: clamp(1.0625rem, 3.5cqi, 1.4375rem);
+    font-size: calc(clamp(1.0625rem, 3.5cqi, 1.4375rem) * var(--card-fs, 1));
   }
   .card-fluid .text-lg {
-    font-size: clamp(1.1875rem, 4.2cqi, 1.6875rem);
+    font-size: calc(clamp(1.1875rem, 4.2cqi, 1.6875rem) * var(--card-fs, 1));
   }
   .card-fluid .text-xl {
-    font-size: clamp(1.375rem, 4.9cqi, 1.9375rem);
+    font-size: calc(clamp(1.375rem, 4.9cqi, 1.9375rem) * var(--card-fs, 1));
   }
   .card-fluid .text-2xl {
-    font-size: clamp(1.625rem, 5.8cqi, 2.375rem);
+    font-size: calc(clamp(1.625rem, 5.8cqi, 2.375rem) * var(--card-fs, 1));
   }
   .card-fluid .text-3xl {
-    font-size: clamp(2rem, 7cqi, 2.75rem);
+    font-size: calc(clamp(2rem, 7cqi, 2.75rem) * var(--card-fs, 1));
   }
   .card-fluid .text-4xl {
-    font-size: clamp(2.375rem, 8.5cqi, 3.25rem);
+    font-size: calc(clamp(2.375rem, 8.5cqi, 3.25rem) * var(--card-fs, 1));
   }
 }
 
@@ -315,3 +315,74 @@ body {
 [data-theme="paper"] .bg-brand { background: #b91c1c !important; }
 [data-theme="paper"] .text-brand { color: #b91c1c !important; }
 [data-theme="paper"] .bg-brand-soft { background: rgba(185, 28, 28, 0.08) !important; }
+
+/* ============ M28 首页单卡配色（设置页→首页卡片布局→「确定并应用」） ============
+   块外壳带 data-skin / data-fg 时生效，具体取色值由 dashboard-layout.ts 折算成 CSS 变量内联下来
+   （皮肤只有一套算法，预览与首页共用同一变量，不会出现预览一个样、首页另一个样）。
+   本节故意放在所有主题覆写之后且不进 @layer：同优先级下源序在后，加上 !important 才能稳住主题自带的 !important。 */
+[data-skin] .card-fluid {
+  background: var(--skin-bg) !important;
+  border-color: var(--skin-line) !important;
+}
+[data-fg] .card-fluid,
+[data-skin] .card-fluid {
+  color: var(--skin-fg) !important;
+}
+/* 卡内的浅底跟着换调，深浅底上都不会出现刺白块。
+   这里逐类写出而不用 [class*="bg-slate-"] 无差别匹配：甘特图的状态条靠 bg-slate-200/400 做语义色，
+   被一并刷成皮肤浅底就会“条子看不见”，所以只换那些确实是「面」的浅底（含带透明度的 /60 /70 /10 档）。 */
+[data-skin] .card-fluid :is(
+  .bg-white,
+  .bg-slate-50,
+  .bg-slate-50\/60,
+  .bg-slate-100,
+  .bg-slate-100\/70,
+  .hover\:bg-slate-100,
+  .bg-white\/10
+) {
+  background: var(--skin-soft) !important;
+}
+/* 卡内的次要信息小字走皮肤副色（Hero 里的 text-sidebar-fg/70 同理），保证层次又不糊 */
+[data-skin] .card-fluid :is(.text-slate-400, .text-slate-500, .text-slate-600, .text-sidebar-fg\/70) {
+  color: var(--skin-muted) !important;
+}
+[data-skin] .card-fluid .text-sidebar-fg {
+  color: var(--skin-fg) !important;
+}
+[data-skin] .card-fluid .divide-y > * + * {
+  border-color: var(--skin-line) !important;
+}
+[data-skin] .card-fluid [class*="ring-slate-"] {
+  --tw-ring-color: var(--skin-line) !important;
+}
+/* 深底皮肤（data-skin-tone=dark）下：日历三色的语义字与品牌浅底统一提亮，
+   否则节日金/节气青/赛事赤陶这些深色会压在深底上看不清（实测对比度曾只有 1.4~1.6:1）。 */
+[data-skin-tone="dark"] .card-fluid :is(.text-amber-600, .text-amber-700, .text-amber-800) {
+  color: #f3c078 !important;
+}
+[data-skin-tone="dark"] .card-fluid :is(.text-teal-600, .text-teal-700) {
+  color: #7ee6d5 !important;
+}
+[data-skin-tone="dark"] .card-fluid :is(.text-brand, .text-red-600) {
+  color: #ff9a8c !important;
+}
+/* 卡内彩色小签（今天/待定/状态徽章这类 bg-*-50 浅底）在深底下必须同时换底：
+   只提亮字而不换它自带的浅底，会出现浅字压浅底（实测 1.87:1，几乎看不见）。 */
+[data-skin-tone="dark"] .card-fluid :is(
+  .bg-red-50,
+  .bg-amber-50,
+  .bg-emerald-50,
+  .bg-blue-50,
+  .bg-purple-50,
+  .bg-sky-50
+) {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+/* 品牌浅底只给 10% 透明：取 18% 会把局部有效底色抬太亮，实测压得赤陶字只剩 4.26:1 */
+[data-skin-tone="dark"] .card-fluid .bg-brand-soft {
+  background-color: rgba(255, 154, 140, 0.1) !important;
+}
+/* 只改文字色（皮肤仍跟随主题）时也走同一套变量 */
+[data-fg] .card-fluid .text-sidebar-fg {
+  color: var(--skin-fg) !important;
+}

@@ -9,7 +9,9 @@ import {
   DEFAULT_LAYOUT,
   LAYOUT_EVENT,
   SPAN_CLASS,
+  cardVars,
   loadLayout,
+  skinTone,
   type BlockCfg,
   type BlockId,
 } from "@/lib/dashboard-layout";
@@ -76,14 +78,22 @@ function Kpi({ label, value, icon, brand = false }: { label: string; value: numb
   );
 }
 
-// 布局栅格里的一个卡片槽位：宽档 / 先后 / 显隐全部来自设置页里那份已「确定」的配置。
+// 布局栅格里的一个卡片槽位：宽档 / 先后 / 显隐 / 卡内字号 / 卡片色 / 文字色
+// 全部来自设置页里那份已「确定」的配置（globals.css 的 M28 规则读这些 CSS 变量）。
 // 首页本身不给拖拽手柄，避免误碰（要改组合请去 设置 → 首页卡片布局）。
 type Placed = BlockCfg & { order: number };
 
 function Block({ cfg, children }: { cfg?: Placed; children: React.ReactNode }) {
   if (!cfg || !cfg.visible) return null;
+  const tone = skinTone(cfg.skin);
   return (
-    <div className={`min-w-0 ${SPAN_CLASS[cfg.size]}`} style={{ order: cfg.order }}>
+    <div
+      className={`min-w-0 ${SPAN_CLASS[cfg.size]}`}
+      data-skin={cfg.skin !== "default" ? cfg.skin : undefined}
+      data-skin-tone={tone ?? undefined}
+      data-fg={cfg.fg !== "auto" ? cfg.fg : undefined}
+      style={{ order: cfg.order, ...cardVars(cfg) } as React.CSSProperties}
+    >
       {children}
     </div>
   );

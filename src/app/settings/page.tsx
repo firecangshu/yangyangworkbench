@@ -350,7 +350,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="card-fluid rounded-xl border bg-white p-4">
-        <div className="mb-1 font-medium">🧩 首页卡片布局（尺寸 / 顺序 / 显隐）</div>
+        <div className="mb-1 font-medium">🧩 首页卡片布局（尺寸 / 顺序 / 显隐 / 卡内字号 / 卡片颜色）</div>
         <DashboardLayoutEditor />
       </div>
 
