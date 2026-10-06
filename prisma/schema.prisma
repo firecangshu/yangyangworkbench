@@ -28,6 +28,7 @@ model Contest {
   track       String   @default("")
   startDate   String   @default("") @map("start_date")
   deadline    String   @default("")
+  resultDate  String   @default("") @map("result_date")
   status      String   @default("research")
   submitLink  String   @default("") @map("submit_link")
   notes       String   @default("")
@@ -43,6 +44,8 @@ model Deliverable {
   name      String
   done      Boolean   @default(false)
   doneAt    DateTime? @map("done_at")
+  stage     String    @default("")
+  path      String    @default("")
   contest   Contest   @relation(fields: [contestId], references: [id], onDelete: Cascade)
 }
 
