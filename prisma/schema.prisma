@@ -129,3 +129,18 @@ model LaunchSceneItem {
   scene     LaunchScene @relation(fields: [sceneId], references: [id], onDelete: Cascade)
   @@unique([sceneId, kind, refId])
 }
+
+// M31 日历备注/提醒：与比赛解耦的按天自由条目。date 写入前一律 normDate 归一。
+// kind=note 纯备忘；kind=reminder 当日待办（done 可勾选完成）。仅工作台内视觉提醒，不含系统级时间推送。
+model CalendarNote {
+  id        Int       @id @default(autoincrement())
+  date      String    @map("date")
+  text      String
+  kind      String    @default("note")
+  done      Boolean   @default(false)
+  doneAt    DateTime? @map("done_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@index([date])
+}

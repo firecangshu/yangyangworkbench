@@ -289,11 +289,9 @@ export default function ContestsPage() {
       {view === "calendar" && (
         <MonthCalendar
           contests={contests}
-          onPickDay={(_day, items) => {
-            if (items.length > 0) {
-              setExpanded(items[0].id);
-              setView("list");
-            }
+          onOpenContest={(id) => {
+            setExpanded(id);
+            setView("list");
           }}
         />
       )}

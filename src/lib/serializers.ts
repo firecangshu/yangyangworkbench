@@ -20,6 +20,13 @@ export const contestJSON = (c: {
   startDate: c.startDate, deadline: c.deadline, resultDate: c.resultDate, status: c.status, submitLink: c.submitLink, notes: c.notes,
 });
 
+/** M31 日历备注/提醒序列化（供流水 before/after 与前端共用） */
+export const noteJSON = (n: {
+  id: number; date: string; text: string; kind: string; done: boolean;
+}) => ({
+  id: n.id, date: n.date, text: n.text, kind: n.kind, done: n.done,
+});
+
 /** 启动场景成员校验：合法返回数组，非法返回错误文案 */
 export function parseItems(raw: unknown): { kind: string; refId: number }[] | string {
   if (!Array.isArray(raw)) return "items 必须为数组";

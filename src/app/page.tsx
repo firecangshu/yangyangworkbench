@@ -34,6 +34,7 @@ type Contest = {
 type Connection = { id: number; toolName: string; launchCommand: string; lastUsedAt: string | null };
 type EventRow = { id: number; ts: string; entityType: string; entityId: number; action: string; afterJson: string };
 type Scene = { id: number; name: string; items: { id: number; kind: string; refId: number }[] };
+type CalNote = { id: number; date: string; text: string; kind: string; done: boolean };
 
 const STATUS_LABELS: Record<string, string> = {
   incubating: "孵化中", dev: "开发中", submitted: "已提交", maintain: "维护中", done: "完结",
@@ -52,7 +53,7 @@ const FOLDER_ICON = "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a
 const ET_LABEL: Record<string, string> = {
   project: "项目", contest: "比赛", deliverable: "交付物", connection: "工具卡",
   connection_account: "账号", contest_project: "关联", sop_template: "SOP模板", backup: "备份",
-  launch_scene: "启动场景",
+  launch_scene: "启动场景", note: "备注/提醒",
 };
 const ACT_LABEL: Record<string, string> = {
   create: "创建", update: "更新", delete: "删除", launch: "启动",
@@ -126,6 +127,7 @@ export default function Dashboard() {
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [busyScene, setBusyScene] = useState<number | null>(null);
   const [layout, setLayout] = useState<BlockCfg[]>(DEFAULT_LAYOUT);
+  const [notes7, setNotes7] = useState<CalNote[]>([]);
 
   // 首屏挂载后再读本机布局（SSR 与首帧都用默认表，避免 hydration 不一致）；
   // 设置页点「确定并应用」会派发 LAYOUT_EVENT，首页不用刷新即可重排。
@@ -142,18 +144,33 @@ export default function Dashboard() {
     return () => clearInterval(t);
   }, []);
 
+  const reloadNotes = useCallback(() => {
+    const p2 = (n: number) => String(n).padStart(2, "0");
+    const _d = new Date(); const _f = `${_d.getFullYear()}-${p2(_d.getMonth() + 1)}-${p2(_d.getDate())}`;
+    const _e = new Date(); _e.setDate(_e.getDate() + 7); const _t = `${_e.getFullYear()}-${p2(_e.getMonth() + 1)}-${p2(_e.getDate())}`;
+    fetch(`/api/notes?from=${_f}&to=${_t}`).then((r) => r.json()).then((v) => setNotes7(Array.isArray(v) ? v : [])).catch(() => {});
+  }, []);
+
   const load = useCallback(() => {
     fetch("/api/contests").then((r) => r.json()).then(setContests);
     fetch("/api/projects").then((r) => r.json()).then(setProjects);
     fetch("/api/connections").then((r) => r.json()).then(setConnections);
     fetch("/api/events").then((r) => r.json()).then(setEvents);
     fetch("/api/scenes").then((r) => r.json()).then(setScenes);
+    reloadNotes();
     fetch("/api/backup").then((r) => r.json()).then((b) => {
       const auto = Array.isArray(b) ? b.filter((x: { dirName: string }) => x.dirName.startsWith("auto-")) : [];
       setLatestBackup(auto[0]?.dirName?.replace("auto-", "") ?? "");
     });
-  }, []);
+  }, [reloadNotes]);
   useEffect(() => { load(); }, [load]);
+
+  // M31：日历面板内增删改备注/提醒后即时重取未来待办提醒
+  useEffect(() => {
+    const h = () => reloadNotes();
+    window.addEventListener("queetai-notes-changed", h);
+    return () => window.removeEventListener("queetai-notes-changed", h);
+  }, [reloadNotes]);
 
   async function launchConn(c: Connection) {
     setBusyConn(c.id);
@@ -209,6 +226,9 @@ export default function Dashboard() {
     .slice(0, 6);
   const recentEvents = events.slice(0, 8);
 
+  // M31 今日枢纽：仅展示未完成提醒
+  const upcomingReminders = notes7.filter((n) => n.kind === "reminder" && !n.done);
+
   const greeting = !now ? "" : now.getHours() < 6 ? "夜深了" : now.getHours() < 12 ? "早上好" : now.getHours() < 18 ? "下午好" : "晚上好";
 
   // 卡片 id → 配置（含栅格排位），缺项由 Block 兜住不渲染。
@@ -247,8 +267,22 @@ export default function Dashboard() {
           </div>
           {/* 内嵌月历：白色面板浮于墨蓝之上，与首卡融为一体（节气/节日/农历/赛事标注与今天实心赤陶块均保留） */}
           <div className="mt-5">
-            <MonthCalendar contests={contests} onPickDay={() => {}} />
+            <MonthCalendar contests={contests} />
           </div>
+          {/* M31 今日枢纽：未来 7 天未完成待办提醒（只读露出，勾选去日历面板） */}
+          {upcomingReminders.length > 0 && (
+            <div className="mt-3 rounded-lg bg-white/10 p-2.5">
+              <div className="mb-1 text-xs font-medium text-sidebar-fg/80">🔔 未来 7 天待办提醒（{upcomingReminders.length}）</div>
+              <ul className="space-y-1">
+                {upcomingReminders.map((n) => (
+                  <li key={n.id} className="flex items-center gap-2 text-sm">
+                    <span className="shrink-0 tabular-nums text-sidebar-fg/60">{n.date.slice(5).replace("-", "/")}</span>
+                    <span className="min-w-0 flex-1 truncate text-sidebar-fg" title={n.text}>{n.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </Block>
 

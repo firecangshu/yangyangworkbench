@@ -27,6 +27,28 @@ async function main() {
   // 清理探针（Cascade 删 deliverable）
   await prisma.contest.delete({ where: { id: contest.id } });
 
+  // 1b. M31 CalendarNote round-trip：建 note + reminder → 回读 → 翻 done → 清理
+  const note = await prisma.calendarNote.create({
+    data: { date: "2026-11-05", text: "__m31_probe_note__", kind: "note" },
+  });
+  const reminder = await prisma.calendarNote.create({
+    data: { date: "2026-11-06", text: "__m31_probe_rem__", kind: "reminder" },
+  });
+  const noteBack = await prisma.calendarNote.findUnique({ where: { id: note.id } });
+  if (!noteBack || noteBack.kind !== "note" || noteBack.done) {
+    console.error("FAIL: CalendarNote note round-trip");
+    process.exit(1);
+  }
+  const flipped = await prisma.calendarNote.update({
+    where: { id: reminder.id }, data: { done: true, doneAt: new Date() },
+  });
+  if (!flipped.done || !flipped.doneAt) {
+    console.error("FAIL: CalendarNote reminder done flip");
+    process.exit(1);
+  }
+  await prisma.calendarNote.delete({ where: { id: note.id } });
+  await prisma.calendarNote.delete({ where: { id: reminder.id } });
+
   // 2. 连接卡种子存在性
   const magician = await prisma.connection.findFirst({ where: { toolName: "黑客松路演魔术师" } });
   if (!magician || !magician.launchCommand.includes("app.py") || magician.entryUrl !== "http://localhost:7860") {

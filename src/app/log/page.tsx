@@ -76,7 +76,7 @@ export default function LogPage() {
                   </td>
                   <td className="px-4 py-3 text-xs">
                     <span className="mr-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-500">
-                      {{ project: "项目", contest: "比赛", connection: "工具卡", sop: "SOP", launch_scene: "启动场景", account: "账号" }[e.entityType] ?? e.entityType}
+                      {{ project: "项目", contest: "比赛", connection: "工具卡", sop: "SOP", launch_scene: "启动场景", account: "账号", note: "备注/提醒" }[e.entityType] ?? e.entityType}
                     </span>
                     #{e.entityId}
                     {after?.name || before?.name ? ` ${String(after?.name ?? before?.name)}` : ""}
