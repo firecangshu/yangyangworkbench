@@ -12,7 +12,10 @@ const CONNECTIONS = [
     entryUrl: "http://localhost:7860",
     accountNotes: "本地 Gradio · 无 token 自动降级演示",
     credentialRef: "credentials/modelscope-token.txt",
-    launchCommand: 'python "E:\\2.黑客松魔术师\\hackathon-roadshow-magician-studio\\app.py"',
+    // 绝对 python 路径（正斜杠，Node/execFile 在 Windows 均接受）：
+    // launcher 第 83 行要求 existsSync(argv[0])，裸 `python` 不是文件路径会被跳过导致 Studio 启动不了。
+    launchCommand:
+      "C:/Users/User/AppData/Local/Microsoft/WindowsApps/python.exe E:/2.黑客松魔术师/hackathon-roadshow-magician-studio/app.py",
     status: "active",
     tags: "roadshow,magician,contest",
     notes: "在线体验 https://www.modelscope.cn/studios/firecangshu/hackathon-roadshow-magician",

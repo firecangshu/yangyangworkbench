@@ -41,6 +41,10 @@ export default function ContestWorkflowPage() {
   const [loaded, setLoaded] = useState(false);
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [showNext, setShowNext] = useState(false);
+  // M30 视觉类引擎对接：已调起 Studio（包已复制）等待回填路径的 nudge、路径输入值、登记忙态
+  const [invoked, setInvoked] = useState<Set<string>>(new Set());
+  const [pathInput, setPathInput] = useState<Record<string, string>>({});
+  const [regBusy, setRegBusy] = useState<Set<string>>(new Set());
 
   const load = useCallback(() => {
     if (!Number.isFinite(contestId)) return;
@@ -65,6 +69,34 @@ export default function ContestWorkflowPage() {
 
   function skip(taskId: string) {
     setSkipped((s) => new Set(s).add(taskId));
+  }
+
+  // 视觉类 nudge：POST 生成输入包并 launch=true spawn Studio，把包复制到剪贴板，转入“等待回填路径”态
+  async function startInvoke(nudge: Nudge) {
+    if (!contest) return;
+    try {
+      const res = await fetch(`/api/contests/${contest.id}/roadshow-input`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ launch: true }),
+      });
+      const j = await res.json();
+      if (j?.packet) { try { await navigator.clipboard.writeText(j.packet); } catch { /* 剪贴板不可用不阻塞 */ } }
+    } catch { /* spawn 失败仍允许手动回填路径 */ }
+    setInvoked((s) => new Set(s).add(nudge.taskId));
+  }
+
+  // 用户贴回 Studio 产物本地路径 → 登记为已完成交付物（path 存本地路径，红线④不上传）
+  async function confirmPath(nudge: Nudge) {
+    const p = (pathInput[nudge.taskId] ?? "").trim();
+    if (!p || !contest || regBusy.has(nudge.taskId)) return;
+    setRegBusy((s) => new Set(s).add(nudge.taskId));
+    await fetch(`/api/contests/${contest.id}/deliverables`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: nudge.label, stage: nudge.group, path: p, done: true }),
+    });
+    setInvoked((s) => { const n = new Set(s); n.delete(nudge.taskId); return n; });
+    setRegBusy((s) => { const n = new Set(s); n.delete(nudge.taskId); return n; });
+    load();
   }
 
   // Nudge 动作分发：Task 4 打通「打开链接 / 去连接中心 / 唤起助手」三类即时反应，
@@ -101,12 +133,7 @@ export default function ContestWorkflowPage() {
         break;
       }
       case "invoke_tool":
-        window.dispatchEvent(new CustomEvent("open-assistant"));
-        window.dispatchEvent(
-          new CustomEvent("assistant-invoke-tool", {
-            detail: { contestId: contest.id, deliverableName: nudge.label, stage: nudge.group },
-          }),
-        );
+        startInvoke(nudge);
         break;
       case "mark_done":
         // submit 阶段的"确认打包提交"：登记一条已完成交付物
@@ -180,7 +207,32 @@ export default function ContestWorkflowPage() {
         </div>
         {visibleNudges.length > 0 ? (
           visibleNudges.map((n) => (
-            <NudgeCard key={n.taskId} nudge={n} onAction={dispatch} onSkip={skip} />
+            <div key={n.taskId} className="space-y-1.5">
+              <NudgeCard nudge={n} onAction={dispatch} onSkip={skip} />
+              {invoked.has(n.taskId) && (
+                <div className="ml-3 rounded-lg border border-blue-200 bg-blue-50/60 p-3">
+                  <div className="mb-1.5 text-xs text-blue-700">
+                    🎬 Studio 已调起，输入包已复制到剪贴板。生成完把产物的<b>本地路径</b>贴进来登记：
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      className="min-w-0 flex-1 rounded-md border bg-white px-2.5 py-1.5 text-xs"
+                      placeholder="如 E:\\out\\pitch.html 或 C:\\Users\\...\\PPT.pptx"
+                      value={pathInput[n.taskId] ?? ""}
+                      onChange={(e) => setPathInput((s) => ({ ...s, [n.taskId]: e.target.value }))}
+                      onKeyDown={(e) => e.key === "Enter" && confirmPath(n)}
+                    />
+                    <button
+                      onClick={() => confirmPath(n)}
+                      disabled={!(pathInput[n.taskId] ?? "").trim() || regBusy.has(n.taskId)}
+                      className="shrink-0 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-40"
+                    >
+                      {regBusy.has(n.taskId) ? "登记中…" : "✓ 确认登记"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           ))
         ) : (
           <div className="card-fluid rounded-xl border bg-white px-4 py-6 text-center text-sm text-slate-400">
