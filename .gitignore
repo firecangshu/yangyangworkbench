@@ -10,6 +10,7 @@ next-env.d.ts
 credentials/
 backups/
 dev.log
+dev-err.log
 scripts/.launch-queue
 scripts/.launch-queue.lock
 scripts/.deadline-state.json

@@ -11,6 +11,7 @@
  * 输出统一为 JSON（UTF-8）；出错输出 { "error": ... } 并以退出码 1 结束。
  */
 import { PrismaClient } from "@prisma/client";
+import { buildContestInputPacket, phaseOf, PHASES } from "./roadshow-core.mjs";
 
 const db = new PrismaClient();
 
@@ -24,7 +25,7 @@ const projectJSON = (p) => ({
 });
 const contestJSON = (c) => ({
   id: c.id, name: c.name, organizer: c.organizer, track: c.track,
-  startDate: c.startDate, deadline: c.deadline, status: c.status,
+  startDate: c.startDate, deadline: c.deadline, resultDate: c.resultDate, status: c.status,
   submitLink: c.submitLink, notes: c.notes,
 });
 const deliverableJSON = (d) => ({
@@ -54,7 +55,7 @@ const command = argv.find((a) => !a.startsWith("--")) ?? "help";
 const opts = {};
 for (let i = 0; i < argv.length; i++) {
   if (argv[i].startsWith("--")) {
-    const key = argv[i].slice(2);
+    const key = argv[i].slice(2).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
     const val = argv[i + 1] && !argv[i + 1].startsWith("--") ? argv[i + 1] : "true";
     opts[key] = val;
     if (val !== "true") i++;
@@ -84,8 +85,8 @@ const commands = {
         update-project <id> [--name|--path|--category|--status|--tags|--summary|--last-note 值]
         delete-project <id>            # 只删台账行，磁盘文件永不动
 比赛：  list-contests [--status s] | get-contest <id>
-        add-contest --name X [--organizer o] [--track t] [--start-date d] [--deadline d] [--status s] [--notes n]
-        update-contest <id> [--status|--deadline|--name|--organizer|--track|--start-date|--submit-link|--notes 值]
+        add-contest --name X [--organizer o] [--track t] [--start-date d] [--deadline d] [--result-date d] [--status s] [--notes n]
+        update-contest <id> [--status|--deadline|--result-date|--name|--organizer|--track|--start-date|--submit-link|--notes 值]
         delete-contest <id>
 交付物：add-deliverable <contestId> --name X
         set-deliverable <id> [--done true|false] [--name X]     # 勾选自动记 doneAt
@@ -95,6 +96,7 @@ const commands = {
         events [--limit N]
         list-sops     # SOP 流程模板库
         apply-sop <contestId> --sop <templateId>   # 套用模板生成交付物（同名跳过）
+比赛材料：roadshow-input <contestId> [--stage phase]   # 生成魔术师 S1 输入包（--stage 缺省按 status 推断）
 状态枚举：项目 ${VALID_PROJECT_STATUS.join("/")}
           比赛 ${VALID_CONTEST_STATUS.join("/")}
 所有输出为 JSON；写操作自动记入事件流水（events 可查）。`);
@@ -196,11 +198,31 @@ const commands = {
     }, null, 2));
   },
 
+  async "roadshow-input"(id) {
+    const cid = num(id, "比赛 id");
+    const c = await db.contest.findUnique({
+      where: { id: cid },
+      include: { links: { include: { project: true } } },
+    });
+    if (!c) fail(`比赛 ${id} 未找到`, 2);
+    let phase = phaseOf(c.status);
+    if (opts.stage) {
+      if (!PHASES.includes(opts.stage)) fail(`--stage 须为：${PHASES.join("/")}`);
+      phase = opts.stage;
+    }
+    const projects = c.links.map((l) => ({
+      name: l.project.name, path: l.project.path, summary: l.project.summary,
+      tags: l.project.tags, lastNote: l.project.lastNote,
+    }));
+    const packet = buildContestInputPacket(c, projects, phase);
+    console.log(JSON.stringify({ ok: true, contestId: cid, contestName: c.name, phase, packet }, null, 2));
+  },
+
   async "add-contest"() {
     const name = (opts.name ?? "").trim();
     if (!name) fail("--name 必填");
     const data = { name, status: "research" };
-    for (const k of ["organizer", "track", "startDate", "deadline", "notes", "submitLink"]) {
+    for (const k of ["organizer", "track", "startDate", "deadline", "resultDate", "notes", "submitLink"]) {
       if (opts[k]) data[k] = opts[k];
     }
     if (opts.status) {
@@ -217,7 +239,7 @@ const commands = {
 
   async "update-contest"(id) {
     const cid = num(id, "比赛 id");
-    const data = pickStrings(opts, ["name", "organizer", "track", "startDate", "deadline", "submitLink", "notes"]);
+    const data = pickStrings(opts, ["name", "organizer", "track", "startDate", "deadline", "resultDate", "submitLink", "notes"]);
     if (opts.status) {
       if (!VALID_CONTEST_STATUS.includes(opts.status)) fail(`status 须为：${VALID_CONTEST_STATUS.join("/")}`);
       data.status = opts.status;

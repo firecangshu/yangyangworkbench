@@ -12,6 +12,7 @@ import { DatabaseSync } from "node:sqlite";
 import { z } from "zod";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildContestInputPacket, phaseOf, PHASES } from "../cli/roadshow-core.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_PATH = path.join(__dirname, "..", "prisma", "dev.db");
@@ -26,7 +27,7 @@ function openDbWritable() {
 
 const server = new McpServer({
   name: "queetai",
-  version: "0.3.0",
+  version: "0.4.0",
 });
 
 server.registerTool(
@@ -117,6 +118,44 @@ server.registerTool(
         "INSERT INTO EventLog (ts, entity_type, entity_id, action, before_json, after_json) VALUES (?, ?, ?, ?, '{}', ?)"
       ).run(ts, entityType, entityId, action, JSON.stringify({ note, source: "mcp" }));
       return { content: [{ type: "text", text: JSON.stringify({ ok: true, ts, entityType, entityId, action }) }] };
+    } finally {
+      db.close();
+    }
+  }
+);
+
+server.registerTool(
+  "build_roadshow_input",
+  {
+    description:
+      "为某场比赛生成黑客松路演魔术师的 S1 输入包（Markdown）：汇总比赛信息+关联项目上下文+本阶段待办产物。生成比赛材料前先调本工具取上下文。",
+    inputSchema: {
+      contestId: z.number().describe("比赛 id"),
+      stage: z
+        .enum(PHASES)
+        .optional()
+        .describe("目标阶段，缺省按比赛 status 自动推断"),
+    },
+  },
+  async ({ contestId, stage }) => {
+    const db = openDb();
+    try {
+      const c = db
+        .prepare(
+          "SELECT id, name, organizer, track, start_date AS startDate, deadline, result_date AS resultDate, status, notes FROM Contest WHERE id = ?"
+        )
+        .get(contestId);
+      if (!c) return { content: [{ type: "text", text: JSON.stringify({ error: "未找到", contestId }) }] };
+      const projects = db
+        .prepare(
+          "SELECT p.name, p.path, p.summary, p.tags, p.last_note AS lastNote FROM ContestProject cp JOIN Project p ON p.id = cp.project_id WHERE cp.contest_id = ?"
+        )
+        .all(contestId);
+      const phase = stage ?? phaseOf(c.status);
+      if (!PHASES.includes(phase))
+        return { content: [{ type: "text", text: JSON.stringify({ error: `stage 须为：${PHASES.join("/")}` }) }] };
+      const packet = buildContestInputPacket(c, projects, phase);
+      return { content: [{ type: "text", text: packet }] };
     } finally {
       db.close();
     }
