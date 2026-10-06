@@ -170,11 +170,11 @@ export function MonthCalendar({
   const openItems = openKey ? (byDay.get(openKey) ?? []) : [];
 
   return (
-    <div className="card-fluid rounded-xl bg-white p-2 shadow-[0_6px_20px_rgba(31,41,55,0.07)] ring-1 ring-slate-100">
+    <div className="card-fluid rounded-xl bg-white p-1.5 shadow-[0_6px_20px_rgba(31,41,55,0.07)] ring-1 ring-slate-100">
       {/* 标题行：📅 图标 + 粗月份 + 干支年副标题（对齐社工星火区块规范）；导航收为幽灵图标钮 + 赤陶「回今天」
           M26：本卡根元素带 card-fluid，所以卡内字号不再写死 px，而是走全局 text-* 映射（由卡片宽度驱动）：
           月份标题 text-lg / 日期 text-base / 节日节气赛事 text-sm / 农历星期图例 text-xs —— 卡片变宽字同比变大 */}
-      <div className="mb-1 flex items-center justify-between gap-2">
+      <div className="mb-0.5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-soft text-[17px]">📅</span>
           <div className="leading-tight">
@@ -205,14 +205,14 @@ export function MonthCalendar({
           </button>
         </div>
       </div>
-      <div className="grid grid-cols-7 gap-0.5 text-center text-xs text-slate-400">
+      <div className="grid grid-cols-7 gap-0 text-center text-xs text-slate-400">
         {WEEK.map((w) => (
           <div key={w} className="py-0.5">{w}</div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-0.5">
+      <div className="grid grid-cols-7 gap-0">
         {cells.map((d, i) => {
-          if (!d) return <div key={`e${i}`} className="min-h-[clamp(42px,4.5cqi,62px)] rounded-lg bg-slate-50/40" />;
+          if (!d) return <div key={`e${i}`} className="min-h-[clamp(36px,4cqi,52px)] rounded-lg bg-slate-50/40" />;
           const key = ymd(d);
           const items = byDay.get(key) ?? [];
           const mss = (msByDay.get(key) ?? []).filter((m) => m.type !== "deadline");
@@ -226,7 +226,7 @@ export function MonthCalendar({
             <button
               key={key}
               onClick={() => setOpenKey(isOpen ? null : key)}
-              className={`relative flex min-h-[clamp(42px,4.5cqi,62px)] flex-col rounded-lg px-1 py-0.5 text-left align-top transition ${
+              className={`relative flex min-h-[clamp(36px,4cqi,52px)] flex-col rounded-lg px-1 py-0.5 text-left align-top transition ${
                 isOpen ? "ring-2 ring-brand" : ""
               } ${isToday ? "bg-brand text-white shadow-[0_3px_8px_rgba(217,83,79,0.3)]" : "bg-slate-50/60 hover:bg-slate-100"}`}
             >
@@ -275,7 +275,7 @@ export function MonthCalendar({
           );
         })}
       </div>
-      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
+      <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
         <span><span className="text-brand">■</span> 今天</span>
         <span><span className="text-amber-600">■</span> 节日</span>
         <span><span className="text-teal-600">■</span> 节气</span>
