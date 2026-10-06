@@ -3,7 +3,7 @@
 // 三栏：左「卡片库/已隐藏」· 中「12 列画板」· 右「属性栏」+ 顶部工具条。
 // draft/applied 双态：所有改动只动 draft，点「确定并应用」才 saveLayout 落 localStorage 并同步首页（红线①⑤：只存本机不入库）。
 // 画板里的代理卡与首页 Block 用同一套 data-skin/data-skin-tone/data-fg/cardVars/COL_SPAN_CLASS —— 所见即首页。
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BLOCK_LABELS,
   COL_SPAN_CLASS,
@@ -58,6 +58,25 @@ export function DashboardLayoutCanvas() {
       if (!target) return l;
       return [...vis, { ...target, visible: true }, ...hid.filter((x) => x.id !== id)];
     });
+
+  // M29.3 拖 ⠿ 改整卡顺序：只在「可见卡」之间换位，隐藏卡一律尾随（不串行到可见区）。
+  const dragId = useRef<BlockId | null>(null);
+  const onDropReorder = (overId: BlockId) => {
+    const from = dragId.current;
+    dragId.current = null;
+    if (!from || from === overId) return;
+    setDraft((l) => {
+      const vis = l.filter((x) => x.visible);
+      const hid = l.filter((x) => !x.visible);
+      const fi = vis.findIndex((x) => x.id === from);
+      const ti = vis.findIndex((x) => x.id === overId);
+      if (fi < 0 || ti < 0) return l;
+      const [moved] = vis.splice(fi, 1);
+      vis.splice(ti, 0, moved);
+      const order = [...vis, ...hid].map((o) => o.id);
+      return order.map((id) => l.find((x) => x.id === id)!);
+    });
+  };
 
   const apply = () => {
     saveLayout(draft);
@@ -126,6 +145,12 @@ export function DashboardLayoutCanvas() {
             // （globals.css 用后代选择器 [data-skin] .card-fluid 上色，同元素不匹配）。
             <div
               key={c.id}
+              data-id={c.id}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                onDropReorder(c.id);
+              }}
               data-skin={c.skin !== "default" ? c.skin : undefined}
               data-skin-tone={skinTone(c.skin) ?? undefined}
               data-fg={c.fg !== "auto" ? c.fg : undefined}
@@ -139,7 +164,18 @@ export function DashboardLayoutCanvas() {
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <span className="cursor-grab text-slate-300">⠿</span>
+                  <span
+                    draggable
+                    onDragStart={(e) => {
+                      e.stopPropagation();
+                      dragId.current = c.id;
+                    }}
+                    onDragEnd={() => (dragId.current = null)}
+                    title="拖到别的卡上换顺序"
+                    className="cursor-grab select-none text-slate-300"
+                  >
+                    ⠿
+                  </span>
                   <span className="flex-1 truncate text-sm font-medium">{BLOCK_LABELS[c.id]}</span>
                   <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs tabular-nums">
                     占 {c.colSpan}/12
