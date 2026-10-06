@@ -9,8 +9,15 @@ export type BlockId =
   | "events" // 最近动态
   | "projects"; // 项目进展
 
-/** 卡片占 12 列栅格里的几列：full=整行，twoThirds=2/3，half=半行，third=1/3 */
-export type BlockSize = "full" | "twoThirds" | "half" | "third";
+/** M29：卡片在 12 列栅格里占几列（1~12），由画板拖右缘吸附整列而来；取代旧四档 size */
+export type BlockCfg = {
+  id: BlockId;
+  colSpan: number;
+  visible: boolean;
+  fs: FontScale;
+  skin: SkinId;
+  fg: FgChoice;
+};
 
 /** 卡内字号档（M28）：作用在整张卡上，仍与卡片宽度成比例，只是整体抬/压一档 */
 export type FontScale = "sm" | "md" | "lg" | "xl";
@@ -30,15 +37,6 @@ export type SkinId =
 /** 文字颜色档（M28）：默认跟随所选皮肤，可强行压深/提浅/走赤陶 */
 export type FgChoice = "auto" | "dark" | "light" | "brand";
 
-export type BlockCfg = {
-  id: BlockId;
-  size: BlockSize;
-  visible: boolean;
-  fs: FontScale;
-  skin: SkinId;
-  fg: FgChoice;
-};
-
 export const BLOCK_LABELS: Record<BlockId, string> = {
   hero: "今日枢纽（问候 · 时钟 · 月历）",
   scenes: "我的启动场景",
@@ -47,13 +45,6 @@ export const BLOCK_LABELS: Record<BlockId, string> = {
   programs: "常用程序 Top6",
   events: "最近动态",
   projects: "项目进展",
-};
-
-export const SIZE_LABELS: Record<BlockSize, string> = {
-  full: "整行",
-  twoThirds: "2/3 行",
-  half: "半行",
-  third: "1/3 行",
 };
 
 export const FONT_LABELS: Record<FontScale, string> = {
@@ -135,22 +126,38 @@ export function cardVars(cfg: { skin: SkinId; fg: FgChoice; fs: FontScale }): Re
   return v;
 }
 
-// Tailwind 需要静态类名字面量才能被扫描到，所以这里逐档写出完整字符串，不做拼接。
-export const SPAN_CLASS: Record<BlockSize, string> = {
-  full: "lg:col-span-12",
-  twoThirds: "lg:col-span-8",
-  half: "lg:col-span-6",
-  third: "lg:col-span-4",
+// 旧首页消费点：按 colSpan（1~12）取静态类名，Tailwind 需要字面量才能被扫描到，逐档写出。
+export const COL_SPAN_CLASS: Record<number, string> = {
+  1: "lg:col-span-1", 2: "lg:col-span-2", 3: "lg:col-span-3", 4: "lg:col-span-4",
+  5: "lg:col-span-5", 6: "lg:col-span-6", 7: "lg:col-span-7", 8: "lg:col-span-8",
+  9: "lg:col-span-9", 10: "lg:col-span-10", 11: "lg:col-span-11", 12: "lg:col-span-12",
+};
+
+// 旧 size 档位 → 列数映射（迁移历史存档用：M27/M28 存的 full/twoThirds/half/third）
+const LEGACY_SIZE_SPAN: Record<string, number> = { full: 12, twoThirds: 8, half: 6, third: 4 };
+
+/** 纯函数：把存档里的 colSpan / 旧 size 折算成 1~12 的合法列数，脏值回落默认 */
+export function coerceColSpan(rawColSpan: unknown, rawSize: unknown, defSpan: number): number {
+  const clamp = (n: number) => Math.min(12, Math.max(1, Math.round(n)));
+  if (typeof rawColSpan === "number" && Number.isFinite(rawColSpan)) return clamp(rawColSpan);
+  if (typeof rawSize === "string" && rawSize in LEGACY_SIZE_SPAN) return LEGACY_SIZE_SPAN[rawSize];
+  const fb = typeof defSpan === "number" && Number.isFinite(defSpan) ? defSpan : 12;
+  return clamp(fb);
+}
+
+// 各卡默认列宽（对齐旧四档：full→12、half→6），DEFAULT_LAYOUT 与旧存档迁移共用。
+const DEF_SPAN: Record<BlockId, number> = {
+  hero: 12, scenes: 12, kpi: 12, contests: 12, programs: 6, events: 6, projects: 12,
 };
 
 export const DEFAULT_LAYOUT: BlockCfg[] = [
-  { id: "hero", size: "full", visible: true, fs: "md", skin: "default", fg: "auto" },
-  { id: "scenes", size: "full", visible: true, fs: "md", skin: "default", fg: "auto" },
-  { id: "kpi", size: "full", visible: true, fs: "md", skin: "default", fg: "auto" },
-  { id: "contests", size: "full", visible: true, fs: "md", skin: "default", fg: "auto" },
-  { id: "programs", size: "half", visible: true, fs: "md", skin: "default", fg: "auto" },
-  { id: "events", size: "half", visible: true, fs: "md", skin: "default", fg: "auto" },
-  { id: "projects", size: "full", visible: true, fs: "md", skin: "default", fg: "auto" },
+  { id: "hero", colSpan: 12, visible: true, fs: "md", skin: "default", fg: "auto" },
+  { id: "scenes", colSpan: 12, visible: true, fs: "md", skin: "default", fg: "auto" },
+  { id: "kpi", colSpan: 12, visible: true, fs: "md", skin: "default", fg: "auto" },
+  { id: "contests", colSpan: 12, visible: true, fs: "md", skin: "default", fg: "auto" },
+  { id: "programs", colSpan: 6, visible: true, fs: "md", skin: "default", fg: "auto" },
+  { id: "events", colSpan: 6, visible: true, fs: "md", skin: "default", fg: "auto" },
+  { id: "projects", colSpan: 12, visible: true, fs: "md", skin: "default", fg: "auto" },
 ];
 
 const KEY = "queetai-dashboard-layout";
@@ -158,13 +165,9 @@ const KEY = "queetai-dashboard-layout";
 /** 布局变更事件：设置页点确定后派发，已打开的首页即时重排（同一浏览器标签内） */
 export const LAYOUT_EVENT = "queetai-dashboard-layout";
 
-const SIZES: BlockSize[] = ["full", "twoThirds", "half", "third"];
 const FONTS: FontScale[] = ["sm", "md", "lg", "xl"];
 const FGS: FgChoice[] = ["auto", "dark", "light", "brand"];
 
-function pickSize(v: unknown): BlockSize {
-  return SIZES.includes(v as BlockSize) ? (v as BlockSize) : "full";
-}
 function pickFont(v: unknown): FontScale {
   return FONTS.includes(v as FontScale) ? (v as FontScale) : "md";
 }
@@ -192,11 +195,11 @@ export function loadLayout(): BlockCfg[] {
   const byId = new Map<BlockId, BlockCfg>();
   for (const raw of saved) {
     if (!raw || typeof raw !== "object") continue;
-    const r = raw as Partial<BlockCfg>;
+    const r = raw as Partial<BlockCfg> & { size?: unknown };
     if (!r.id || !(r.id in BLOCK_LABELS)) continue;
     byId.set(r.id, {
       id: r.id,
-      size: pickSize(r.size),
+      colSpan: coerceColSpan(r.colSpan, r.size, DEF_SPAN[r.id]),
       visible: r.visible !== false,
       fs: pickFont(r.fs),
       skin: pickSkin(r.skin),

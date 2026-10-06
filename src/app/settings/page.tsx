@@ -1,8 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { setTheme } from "@/components/ThemeProvider";
-import { DashboardLayoutEditor } from "@/components/DashboardLayoutEditor";
 
 type BackupInfo = {
   dirName: string;
@@ -350,8 +350,14 @@ export default function SettingsPage() {
       </div>
 
       <div className="card-fluid rounded-xl border bg-white p-4">
-        <div className="mb-1 font-medium">🧩 首页卡片布局（尺寸 / 顺序 / 显隐 / 卡内字号 / 卡片颜色）</div>
-        <DashboardLayoutEditor />
+        <div className="mb-1 font-medium">🧩 首页卡片布局</div>
+        <p className="mb-3 text-xs text-slate-500">
+          用画板拖卡片排版首页：拖整块改顺序、拖右缘改宽度、点卡改配色。点「确定并应用」才同步到首页；配置只存本机，不入库。
+        </p>
+        <Link href="/settings/layout"
+          className="inline-block rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+          🎛 打开画板编辑器 →
+        </Link>
       </div>
 
       <div className="card-fluid rounded-xl border bg-white p-4">
