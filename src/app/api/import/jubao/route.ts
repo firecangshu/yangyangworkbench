@@ -7,7 +7,7 @@ import { logEvent } from "@/lib/events";
 const JUBAO_STATE = "E:\\3.赛博聚宝盆\\asset-registry\\data\\state.json";
 
 /**
- * 从赛博聚宝盆导入资产登记为雀台项目。
+ * 从赛博聚宝盆导入资产登记为工作台项目。
  * 只读聚宝盆 state.json，不改动聚宝盆任何文件。
  * types: 导入的资产类型白名单，默认 ["skill","program"]（聚宝盆中 expert/connector 语义不明，不擅自导入）
  */

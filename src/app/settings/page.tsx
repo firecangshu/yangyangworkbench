@@ -194,7 +194,7 @@ export default function SettingsPage() {
           <div>
             <div className="font-medium">一键备份</div>
             <p className="mt-1 text-xs text-slate-500">
-              导出全量 JSON 快照 + SQLite 文件副本到 <code className="rounded bg-slate-100 px-1">雀台/backups/</code>
+              导出全量 JSON 快照 + SQLite 文件副本到 <code className="rounded bg-slate-100 px-1">backups/</code> 目录
             </p>
           </div>
           <button onClick={runBackup} disabled={busy}
@@ -363,7 +363,7 @@ export default function SettingsPage() {
       <div className="card-fluid rounded-xl border bg-white p-4">
         <div className="mb-1 font-medium">赛博聚宝盆 · 资产导入</div>
         <p className="mb-3 text-xs text-slate-500">
-          只读聚宝盆 <code className="rounded bg-slate-100 px-1">state.json</code>，把 skill / 程序类资产导入为雀台项目（expert/connector 类语义不明，暂不导入）。
+          只读聚宝盆 <code className="rounded bg-slate-100 px-1">state.json</code>，把 skill / 程序类资产导入为工作台项目（expert/connector 类语义不明，暂不导入）。
           <span className="font-medium text-slate-700">不改动聚宝盆任何文件</span>；已登记路径自动去重。
         </p>
         <div className="flex gap-2">

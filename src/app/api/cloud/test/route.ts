@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   }
   if (!existsSync(credentialRef)) {
     return NextResponse.json(
-      { ok: false, error: `凭据文件不存在：${credentialRef}。请先把 API key 写入该本地文件（key 不经过雀台数据库）。`, stage: "credential_missing" },
+      { ok: false, error: `凭据文件不存在：${credentialRef}。请先把 API key 写入该本地文件（key 不经过工作台数据库）。`, stage: "credential_missing" },
       { status: 400 }
     );
   }

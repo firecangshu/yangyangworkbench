@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { dayMark, lunarYearLabel } from "@/lib/cn-calendar";
-import { deriveMilestones, type Milestone, type MilestoneType } from "@/lib/contest-playbook";
+import { deriveMilestones, normDate, type Milestone, type MilestoneType } from "@/lib/contest-playbook";
 
 type ContestBrief = {
   id: number;
@@ -45,10 +45,11 @@ export function MonthCalendar({
   const byDay = useMemo(() => {
     const map = new Map<string, ContestBrief[]>();
     for (const c of contests) {
-      if (!c.deadline) continue;
-      const arr = map.get(c.deadline) ?? [];
+      const key = normDate(c.deadline);
+      if (!key) continue;
+      const arr = map.get(key) ?? [];
       arr.push(c);
-      map.set(c.deadline, arr);
+      map.set(key, arr);
     }
     return map;
   }, [contests]);
@@ -64,7 +65,7 @@ export function MonthCalendar({
     return map;
   }, [contests]);
 
-  const noDeadline = contests.filter((c) => !c.deadline);
+  const noDeadline = contests.filter((c) => !normDate(c.deadline));
 
   const cells = useMemo(() => {
     const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
@@ -82,11 +83,11 @@ export function MonthCalendar({
   const yearLabel = lunarYearLabel(cursor.getFullYear(), cursor.getMonth(), 1);
 
   return (
-    <div className="card-fluid rounded-xl bg-white p-3 shadow-[0_6px_20px_rgba(31,41,55,0.07)] ring-1 ring-slate-100">
+    <div className="card-fluid rounded-xl bg-white p-2.5 shadow-[0_6px_20px_rgba(31,41,55,0.07)] ring-1 ring-slate-100">
       {/* 标题行：📅 图标 + 粗月份 + 干支年副标题（对齐社工星火区块规范）；导航收为幽灵图标钮 + 赤陶「回今天」
           M26：本卡根元素带 card-fluid，所以卡内字号不再写死 px，而是走全局 text-* 映射（由卡片宽度驱动）：
           月份标题 text-lg / 日期 text-base / 节日节气赛事 text-sm / 农历星期图例 text-xs —— 卡片变宽字同比变大 */}
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-soft text-[17px]">📅</span>
           <div className="leading-tight">
@@ -124,7 +125,7 @@ export function MonthCalendar({
       </div>
       <div className="grid grid-cols-7 gap-1">
         {cells.map((d, i) => {
-          if (!d) return <div key={`e${i}`} className="min-h-[clamp(78px,9cqi,112px)] rounded-lg bg-slate-50/60" />;
+          if (!d) return <div key={`e${i}`} className="min-h-[clamp(58px,6.5cqi,92px)] rounded-lg bg-slate-50/40" />;
           const key = ymd(d);
           const items = byDay.get(key) ?? [];
           const mss = (msByDay.get(key) ?? []).filter((m) => m.type !== "deadline");
@@ -134,7 +135,7 @@ export function MonthCalendar({
             <button
               key={key}
               onClick={() => onPickDay?.(key, items)}
-              className={`flex min-h-[clamp(78px,9cqi,112px)] flex-col rounded-lg p-1.5 text-left align-top transition ${
+              className={`flex min-h-[clamp(58px,6.5cqi,92px)] flex-col rounded-lg p-1 text-left align-top transition ${
                 isToday ? "bg-brand text-white shadow-[0_3px_8px_rgba(217,83,79,0.3)]" : "bg-slate-50/60 hover:bg-slate-100"
               }`}
             >
@@ -176,7 +177,7 @@ export function MonthCalendar({
           );
         })}
       </div>
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
         <span><span className="text-brand">■</span> 今天</span>
         <span><span className="text-amber-600">■</span> 节日</span>
         <span><span className="text-teal-600">■</span> 节气</span>
@@ -185,7 +186,7 @@ export function MonthCalendar({
         <span><span className="inline-block h-2 w-2 rounded-full bg-violet-500 align-middle" /> 结果公布</span>
       </div>
       {noDeadline.length > 0 && (
-        <div className="mt-2 rounded-lg bg-slate-50 p-2.5">
+        <div className="mt-1.5 rounded-lg bg-slate-50 p-2">
           <div className="text-xs font-medium text-slate-600">截止日待定（{noDeadline.length} 场）</div>
           <div className="mt-1 flex flex-wrap gap-1.5">
             {noDeadline.map((c) => (

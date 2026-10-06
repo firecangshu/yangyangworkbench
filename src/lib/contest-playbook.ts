@@ -139,17 +139,42 @@ export const MILESTONE_LABEL: Record<MilestoneType, string> = {
 };
 
 /**
+ * 日期归一：把各种脏输入（多余空格 / ISO 带时间 / yyyy-M-d 未补零）收敛成
+ * 规范的 "yyyy-MM-dd"；非法或越界（月 1-12、日 1-31、无法解析）一律返回 ""。
+ * 供里程碑派生与日历/甘特消费端共用，避免格式漂移导致漏配。
+ */
+export function normDate(raw: string | null | undefined): string {
+  if (!raw) return "";
+  const m = String(raw).trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (!m) return "";
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  if (!Number.isFinite(y) || mo < 1 || mo > 12 || d < 1 || d > 31) return "";
+  const p = (n: number) => String(n).padStart(2, "0");
+  const iso = `${y}-${p(mo)}-${p(d)}`;
+  // 日历级回验：拒绝 2/31、4/31 等“该月不存在”的假日期（new Date 会把它们滚动到下月）
+  const dt = new Date(iso + "T00:00:00");
+  if (Number.isNaN(dt.getTime())) return "";
+  if (dt.getFullYear() !== y || dt.getMonth() + 1 !== mo || dt.getDate() !== d) return "";
+  return iso;
+}
+
+/**
  * 从比赛派生三类里程碑：startDate=启动、deadline=截止、resultDate=结果公布。
- * 仅收录非空日期，供月历圆点与甘特分段染色共用同一份语义。
+ * 日期经 normDate 归一，非法/空值自动跳过，供月历圆点与甘特分段染色共用同一份语义。
  */
 export function deriveMilestones(
   contests: { id: number; name: string; startDate: string; deadline: string; resultDate: string; status: string }[],
 ): Milestone[] {
   const out: Milestone[] = [];
   for (const c of contests) {
-    if (c.startDate) out.push({ date: c.startDate, type: "start", contestId: c.id, contestName: c.name, status: c.status });
-    if (c.deadline) out.push({ date: c.deadline, type: "deadline", contestId: c.id, contestName: c.name, status: c.status });
-    if (c.resultDate) out.push({ date: c.resultDate, type: "result", contestId: c.id, contestName: c.name, status: c.status });
+    const start = normDate(c.startDate);
+    const deadline = normDate(c.deadline);
+    const result = normDate(c.resultDate);
+    if (start) out.push({ date: start, type: "start", contestId: c.id, contestName: c.name, status: c.status });
+    if (deadline) out.push({ date: deadline, type: "deadline", contestId: c.id, contestName: c.name, status: c.status });
+    if (result) out.push({ date: result, type: "result", contestId: c.id, contestName: c.name, status: c.status });
   }
   return out;
 }

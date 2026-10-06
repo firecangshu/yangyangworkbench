@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { CONTEST_STATUS_LABELS, daysUntil } from "@/lib/constants";
+import { normDate } from "@/lib/contest-playbook";
 
 type Contest = {
   id: number;
@@ -21,8 +22,9 @@ const SEG_WON = "bg-emerald-500"; // 已获奖
 const SEG_LOST = "bg-red-400"; // 未中
 
 function parse(d: string): Date | null {
-  if (!d) return null;
-  const t = new Date(d + "T00:00:00");
+  const n = normDate(d);
+  if (!n) return null;
+  const t = new Date(n + "T00:00:00");
   return Number.isNaN(t.getTime()) ? null : t;
 }
 
@@ -51,26 +53,27 @@ export function GanttView({ contests }: { contests: Contest[] }) {
     const span = Math.max(1, Math.round((maxD.getTime() - minD.getTime()) / 86400000));
     const pct = (t: Date) => ((t.getTime() - minD.getTime()) / (maxD.getTime() - minD.getTime())) * 100;
     const todayPct = pct(today);
+    const clampV = (v: number) => Math.min(100, Math.max(0, v));
 
     const list = contests
       .map((c) => {
         const s = parse(c.startDate);
         const d = parse(c.deadline);
         const r = parse(c.resultDate);
-        const days = daysUntil(c.deadline);
+        const days = daysUntil(normDate(c.deadline));
         const expired = days !== null && days < 0 && !r;
 
         const segs: Seg[] = [];
-        // 备赛段：startDate → deadline
+        // 备赛段：startDate → deadline（左右夹在视口内，乱序/越界自动收缩）
         if (s && d) {
-          const l = pct(s);
-          const w = Math.max(1, pct(d) - l);
+          const l = clampV(pct(s));
+          const w = Math.min(Math.max(1, pct(d) - pct(s)), 100 - l);
           segs.push({ left: l, width: w, cls: expired ? "bg-slate-300" : SEG_PREPARE, label: "备赛" });
         }
         // 结果段：deadline → resultDate，颜色随胜负
         if (d && r) {
-          const l = pct(d);
-          const w = Math.max(1, pct(r) - l);
+          const l = clampV(pct(d));
+          const w = Math.min(Math.max(1, pct(r) - pct(d)), 100 - l);
           const cls = c.status === "won" ? SEG_WON : c.status === "lost" ? SEG_LOST : SEG_PENDING;
           const label = c.status === "won" ? "已获奖" : c.status === "lost" ? "未中" : "等待公布";
           segs.push({ left: l, width: w, cls, label });

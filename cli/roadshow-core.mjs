@@ -49,15 +49,16 @@ export function nudgesForPhase(phase) {
  * @param phase 目标阶段
  */
 export function buildContestInputPacket(c, projects, phase) {
+  const list = Array.isArray(projects) ? projects : [];
   const nudges = nudgesForPhase(phase);
   const taskList = nudges.length > 0
     ? nudges.map(([label, hint]) => `  - [ ] ${label}（${hint}）`).join("\n")
     : "  - （本阶段无待办产物）";
-  const projBlock = projects.length > 0
-    ? projects.map((p) => `### ${p.name}\n- 路径：${p.path || "（未填）"}\n- 摘要：${p.summary || "（未填）"}\n- 标签：${p.tags || "（无）"}\n- 最近更新：${p.lastNote || "（无）"}`).join("\n\n")
+  const projBlock = list.length > 0
+    ? list.map((p) => `### ${p.name || "未命名项目"}\n- 路径：${p.path || "（未填）"}\n- 摘要：${p.summary || "（未填）"}\n- 标签：${p.tags || "（无）"}\n- 最近更新：${p.lastNote || "（无）"}`).join("\n\n")
     : "- （未关联项目）";
 
-  return `# 路演输入包 · ${c.name}
+  return `# 路演输入包 · ${c.name || "未命名比赛"}
 
 ## 比赛信息
 - 主办方：${c.organizer || "（未填）"}
@@ -77,5 +78,5 @@ ${taskList}
 （留空 = 默认暗色科技风）
 
 ---
-> 此输入包由雀台 M30 自动生成。魔术师/IDE Skill 读取后可直接跳入 S2 信息核对步骤。`;
+> 此输入包由工作台 M30 自动生成。魔术师/IDE Skill 读取后可直接跳入 S2 信息核对步骤。`;
 }

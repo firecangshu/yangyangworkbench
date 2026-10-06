@@ -1,5 +1,5 @@
 /** M30 playbook 哨兵：验证映射/推断逻辑正确。 */
-import { GROUP_ITEMS, phaseOf, nudgesForPhase, activeNudges, nextPhasePreview, deriveMilestones } from "../src/lib/contest-playbook.js";
+import { GROUP_ITEMS, phaseOf, nudgesForPhase, activeNudges, nextPhasePreview, deriveMilestones, normDate } from "../src/lib/contest-playbook.js";
 
 function assert(cond: boolean, msg: string) { if (!cond) { console.error("FAIL:", msg); process.exit(1); } }
 
@@ -44,5 +44,21 @@ assert(!filtered.some((n) => n.label === "PPT"), "PPT 应被过滤掉");
 // nextPhasePreview
 assert(nextPhasePreview("prepare")?.phase === "submit", "prepare 下一阶段 submit");
 assert(nextPhasePreview("result") === null, "result 无后续");
+
+// normDate 容错：未补零/带时间/非法/越界
+assert(normDate("2026-8-1") === "2026-08-01", "未补零应补零");
+assert(normDate("2026-08-01T12:30:00Z") === "2026-08-01", "带时间应截取日期部分");
+assert(normDate("  2026-08-01  ") === "2026-08-01", "多余空格应 trim");
+assert(normDate("乱码xyz") === "", "非法字符串应返回空");
+assert(normDate("2026-13-01") === "", "月越界应返回空");
+assert(normDate("2026-02-31") === "", "日越界应返回空");
+assert(normDate(null) === "" && normDate(undefined) === "", "null/undef 应返回空");
+
+// deriveMilestones 对脏日期：未补零归一后保留、非法跳过
+const msDirty = deriveMilestones([
+  { id: 9, name: "D", startDate: "2026/8/1", deadline: "2026-9-15", resultDate: "垃圾", status: "won" },
+]);
+assert(msDirty.length === 1, `脏数据应仅 deadline 入库（start 非法格式被拒），实得 ${msDirty.length}`);
+assert(msDirty[0].date === "2026-09-15", "deadline 应归一为 2026-09-15");
 
 console.log("M30_PLAYBOOK_PASS");
