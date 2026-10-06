@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Provider = { id: string; label: string; model: string; note: string; keyFile: string; hasKey: boolean };
-type Msg = { role: "user" | "assistant"; content: string; tools?: { name: string; args: unknown }[]; degraded?: boolean };
+type GenMeta = { contestId: number; deliverableName: string; stage: string };
+type Msg = { role: "user" | "assistant"; content: string; tools?: { name: string; args: unknown }[]; degraded?: boolean; meta?: GenMeta; registered?: boolean };
 
 const QUICK = [
   "现在工作台是什么状态？有哪些比赛快到期了？",
@@ -44,7 +45,23 @@ export function AssistantDock({ width = 360 }: { width?: number }) {
     return () => window.removeEventListener("open-assistant", onOpen);
   }, []);
 
-  async function send(text: string) {
+  // 始终指向最新 send，供只订阅一次的全局事件调用（避免陈旧闭包丢 msgs/busy）
+  const sendRef = useRef<(t: string, m?: GenMeta) => void>(() => {});
+
+  // M30 Nudge「助手帮你写」：工作流页 dispatch assistant-generate → 自动滚动、发送、携带登记元信息
+  useEffect(() => {
+    const onGenerate = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { prompt: string; meta: GenMeta };
+      if (!detail?.prompt) return;
+      asideRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      setTimeout(() => inputRef.current?.focus(), 120);
+      sendRef.current(detail.prompt, detail.meta);
+    };
+    window.addEventListener("assistant-generate", onGenerate);
+    return () => window.removeEventListener("assistant-generate", onGenerate);
+  }, []);
+
+  async function send(text: string, meta?: GenMeta) {
     const q = text.trim();
     if (!q || busy) return;
     setBusy(true);
@@ -66,12 +83,26 @@ export function AssistantDock({ width = 360 }: { width?: number }) {
         content: j.reply ?? j.error ?? "（无回复）",
         tools: j.tools,
         degraded: !!j.degraded,
+        meta,
       }]);
     } catch (e) {
-      setMsgs([...next, { role: "assistant", content: `网络错误：${String(e)}`, degraded: true }]);
+      setMsgs([...next, { role: "assistant", content: `网络错误：${String(e)}`, degraded: true, meta }]);
     } finally {
       setBusy(false);
     }
+  }
+  sendRef.current = send;
+
+  // 「确认登记」：把助手直出产物登记回交付物清单（done + path=assistant-inline）
+  async function registerGenerated(m: Msg, idx: number) {
+    if (!m.meta) return;
+    const res = await fetch(`/api/contests/${m.meta.contestId}/deliverables`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: m.meta.deliverableName, stage: m.meta.stage, path: "assistant-inline", done: true }),
+    });
+    if (!res.ok) return;
+    setMsgs((prev) => prev.map((x, i) => (i === idx ? { ...x, registered: true } : x)));
   }
 
   const cur = providers.find((p) => p.id === provider);
@@ -135,6 +166,28 @@ export function AssistantDock({ width = 360 }: { width?: number }) {
                       🔧 {t.name === "query_status" ? "查询了工作台状态" : t.name === "add_contest" ? `登记比赛「${(t.args as { name?: string })?.name ?? "?"}」` : t.name}
                     </span>
                   ))}
+                </div>
+              )}
+              {m.meta && !m.degraded && (
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-slate-200 pt-2">
+                  {m.registered ? (
+                    <span className="text-xs font-medium text-emerald-600">✓ 已登记「{m.meta.deliverableName}」到交付物</span>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => registerGenerated(m, i)}
+                        className="rounded bg-emerald-600 px-2 py-0.5 text-xs font-medium text-white hover:bg-emerald-700"
+                      >
+                        ✓ 确认登记
+                      </button>
+                      <button
+                        onClick={() => { setInput("对刚才的内容做如下修改："); inputRef.current?.focus(); }}
+                        className="rounded border bg-white px-2 py-0.5 text-xs text-slate-600 hover:bg-slate-50"
+                      >
+                        ✏ 再改改
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>

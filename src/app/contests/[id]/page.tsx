@@ -79,16 +79,27 @@ export default function ContestWorkflowPage() {
       case "open_tool":
         window.location.href = "/connections";
         break;
-      case "generate_text":
+      case "generate_text": {
+        // 把比赛上下文内联进 prompt，让一次性出稿可用（否则模型会反问要信息）
+        const proj = contest.links.map((l) => l.project.name).join("、") || "（未关联项目）";
+        const ctx = [
+          `比赛名称：${contest.name}`,
+          contest.organizer && `主办方：${contest.organizer}`,
+          contest.track && `赛道/方向：${contest.track}`,
+          `截止：${contest.deadline || "待定"}`,
+          `关联项目：${proj}`,
+          contest.notes && `备注：${contest.notes.slice(0, 300)}`,
+        ].filter(Boolean).join("\n");
         window.dispatchEvent(
           new CustomEvent("assistant-generate", {
             detail: {
-              prompt: `【${PHASE_LABELS[phase]}阶段 · ${nudge.label}】${nudge.hint}\n请基于这场比赛与关联项目，帮我生成「${nudge.label}」的初稿。`,
+              prompt: `请基于以下比赛上下文，直接产出「${nudge.label}」的可用初稿（${nudge.hint}），不要反问、直接给成稿。\n\n${ctx}\n\n（阶段：${PHASE_LABELS[phase]}）`,
               meta: { contestId: contest.id, deliverableName: nudge.label, stage: nudge.group },
             },
           }),
         );
         break;
+      }
       case "invoke_tool":
         window.dispatchEvent(new CustomEvent("open-assistant"));
         window.dispatchEvent(
