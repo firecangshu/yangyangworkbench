@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-const KEY = "queetai-theme";
+const KEY = "workbench-theme";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {

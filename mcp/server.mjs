@@ -1,10 +1,10 @@
-ï»¿#!/usr/bin/env node
+#!/usr/bin/env node
 /**
- * é›€å° MCP Server
- * ä¾› Claude / CodeBuddy / Loomy ç­‰ AI å·¥å…·ç» MCP åè®®è¯»å–é›€å°æ•°æ®ã€‚
- * æ•°æ®è®¿é—®ï¼šç›´æŽ¥è¯» SQLiteï¼ˆnode:sqliteï¼Œé›¶ä¾èµ–ï¼‰ï¼Œä¸ä¾èµ– Web æœåŠ¡æ˜¯å¦åœ¨çº¿ã€‚
- * å®‰å…¨è¾¹ç•Œï¼šé»˜è®¤åªè¯»ï¼›add_event ä»…è¿½åŠ å¤‡æ³¨æµæ°´ï¼›ç»‘å®šæœ¬æœº stdioï¼Œæ— ç½‘ç»œç«¯å£ã€‚
- * æ³¨æ„ï¼šSQL åˆ—åä½¿ç”¨æ•°æ®åº“çœŸå®žåˆ—åï¼ˆPrisma @map åŽçš„ snake_caseï¼‰ã€‚
+ * ¹¤×÷Ì¨ MCP Server
+ * ¹© Claude / CodeBuddy / Loomy µÈ AI ¹¤¾ß¾­ MCP Ð­Òé¶ÁÈ¡¹¤×÷Ì¨Êý¾Ý¡£
+ * Êý¾Ý·ÃÎÊ£ºÖ±½Ó¶Á SQLite£¨node:sqlite£¬ÁãÒÀÀµ£©£¬²»ÒÀÀµ Web ·þÎñÊÇ·ñÔÚÏß¡£
+ * °²È«±ß½ç£ºÄ¬ÈÏÖ»¶Á£»add_event ½ö×·¼Ó±¸×¢Á÷Ë®£»°ó¶¨±¾»ú stdio£¬ÎÞÍøÂç¶Ë¿Ú¡£
+ * ×¢Òâ£ºSQL ÁÐÃûÊ¹ÓÃÊý¾Ý¿âÕæÊµÁÐÃû£¨Prisma @map ºóµÄ snake_case£©¡£
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -33,9 +33,9 @@ const server = new McpServer({
 server.registerTool(
   "list_projects",
   {
-    description: "åˆ—å‡ºé›€å°ä¸­ç™»è®°çš„å…¨éƒ¨ AI åˆ›ä½œé¡¹ç›®ï¼ˆåç§°ã€è·¯å¾„ã€ç±»åˆ«ã€çŠ¶æ€ã€æ ‡ç­¾ï¼‰",
+    description: "ÁÐ³ö¹¤×÷Ì¨ÖÐµÇ¼ÇµÄÈ«²¿ AI ´´×÷ÏîÄ¿£¨Ãû³Æ¡¢Â·¾¶¡¢Àà±ð¡¢×´Ì¬¡¢±êÇ©£©",
     inputSchema: {
-      status: z.string().optional().describe("å¯é€‰ï¼ŒæŒ‰çŠ¶æ€è¿‡æ»¤ï¼šincubating/dev/submitted/maintain/done"),
+      status: z.string().optional().describe("¿ÉÑ¡£¬°´×´Ì¬¹ýÂË£ºincubating/dev/submitted/maintain/done"),
     },
   },
   async ({ status }) => {
@@ -54,16 +54,16 @@ server.registerTool(
 server.registerTool(
   "get_project",
   {
-    description: "æŒ‰ id èŽ·å–å•ä¸ªé¡¹ç›®çš„å®Œæ•´ç™»è®°ä¿¡æ¯",
+    description: "°´ id »ñÈ¡µ¥¸öÏîÄ¿µÄÍêÕûµÇ¼ÇÐÅÏ¢",
     inputSchema: {
-      id: z.number().describe("é¡¹ç›® id"),
+      id: z.number().describe("ÏîÄ¿ id"),
     },
   },
   async ({ id }) => {
     const db = openDb();
     try {
       const row = db.prepare("SELECT * FROM Project WHERE id = ?").get(id);
-      if (!row) return { content: [{ type: "text", text: JSON.stringify({ error: "æœªæ‰¾åˆ°", id }) }] };
+      if (!row) return { content: [{ type: "text", text: JSON.stringify({ error: "Î´ÕÒµ½", id }) }] };
       return { content: [{ type: "text", text: JSON.stringify(row, null, 2) }] };
     } finally {
       db.close();
@@ -74,9 +74,9 @@ server.registerTool(
 server.registerTool(
   "list_contests",
   {
-    description: "åˆ—å‡ºé›€å°ä¸­ç™»è®°çš„å…¨éƒ¨æ¯”èµ›ï¼ˆå«æˆªæ­¢æ—¥ã€çŠ¶æ€ã€äº¤ä»˜è¿›åº¦ã€å…³è”é¡¹ç›®ï¼‰",
+    description: "ÁÐ³ö¹¤×÷Ì¨ÖÐµÇ¼ÇµÄÈ«²¿±ÈÈü£¨º¬½ØÖ¹ÈÕ¡¢×´Ì¬¡¢½»¸¶½ø¶È¡¢¹ØÁªÏîÄ¿£©",
     inputSchema: {
-      status: z.string().optional().describe("å¯é€‰ï¼ŒæŒ‰çŠ¶æ€è¿‡æ»¤ï¼šresearch/registered/preparing/submitted/won/lost/cancelled"),
+      status: z.string().optional().describe("¿ÉÑ¡£¬°´×´Ì¬¹ýÂË£ºresearch/registered/preparing/submitted/won/lost/cancelled"),
     },
   },
   async ({ status }) => {
@@ -102,12 +102,12 @@ server.registerTool(
 server.registerTool(
   "add_event",
   {
-    description: "å‘é›€å°æ“ä½œæµæ°´è¿½åŠ ä¸€æ¡å¤‡æ³¨äº‹ä»¶ï¼ˆç”¨äºŽ AI å·¥å…·å¹²æ´»åŽå›žå¡«è¿›å±•ï¼Œåªè¿½åŠ ä¸ä¿®æ”¹ï¼‰",
+    description: "Ïò¹¤×÷Ì¨²Ù×÷Á÷Ë®×·¼ÓÒ»Ìõ±¸×¢ÊÂ¼þ£¨ÓÃÓÚ AI ¹¤¾ß¸É»îºó»ØÌî½øÕ¹£¬Ö»×·¼Ó²»ÐÞ¸Ä£©",
     inputSchema: {
-      entityType: z.string().describe("å¯¹è±¡ç±»åž‹ï¼Œå¦‚ project/contest/note"),
-      entityId: z.number().describe("å¯¹è±¡ idï¼Œå…¨å±€å¤‡æ³¨å¡« 0"),
-      action: z.string().describe("åŠ¨ä½œåï¼Œå¦‚ progress_note"),
-      note: z.string().describe("å¤‡æ³¨å†…å®¹"),
+      entityType: z.string().describe("¶ÔÏóÀàÐÍ£¬Èç project/contest/note"),
+      entityId: z.number().describe("¶ÔÏó id£¬È«¾Ö±¸×¢Ìî 0"),
+      action: z.string().describe("¶¯×÷Ãû£¬Èç progress_note"),
+      note: z.string().describe("±¸×¢ÄÚÈÝ"),
     },
   },
   async ({ entityType, entityId, action, note }) => {
@@ -128,13 +128,13 @@ server.registerTool(
   "build_roadshow_input",
   {
     description:
-      "ä¸ºæŸåœºæ¯”èµ›ç”Ÿæˆé»‘å®¢æ¾è·¯æ¼”é­”æœ¯å¸ˆçš„ S1 è¾“å…¥åŒ…ï¼ˆMarkdownï¼‰ï¼šæ±‡æ€»æ¯”èµ›ä¿¡æ¯+å…³è”é¡¹ç›®ä¸Šä¸‹æ–‡+æœ¬é˜¶æ®µå¾…åŠžäº§ç‰©ã€‚ç”Ÿæˆæ¯”èµ›ææ–™å‰å…ˆè°ƒæœ¬å·¥å…·å–ä¸Šä¸‹æ–‡ã€‚",
+      "ÎªÄ³³¡±ÈÈüÉú³ÉºÚ¿ÍËÉÂ·ÑÝÄ§ÊõÊ¦µÄ S1 ÊäÈë°ü£¨Markdown£©£º»ã×Ü±ÈÈüÐÅÏ¢+¹ØÁªÏîÄ¿ÉÏÏÂÎÄ+±¾½×¶Î´ý°ì²úÎï¡£Éú³É±ÈÈü²ÄÁÏÇ°ÏÈµ÷±¾¹¤¾ßÈ¡ÉÏÏÂÎÄ¡£",
     inputSchema: {
-      contestId: z.number().describe("æ¯”èµ› id"),
+      contestId: z.number().describe("±ÈÈü id"),
       stage: z
         .enum(PHASES)
         .optional()
-        .describe("ç›®æ ‡é˜¶æ®µï¼Œç¼ºçœæŒ‰æ¯”èµ› status è‡ªåŠ¨æŽ¨æ–­"),
+        .describe("Ä¿±ê½×¶Î£¬È±Ê¡°´±ÈÈü status ×Ô¶¯ÍÆ¶Ï"),
     },
   },
   async ({ contestId, stage }) => {
@@ -145,7 +145,7 @@ server.registerTool(
           "SELECT id, name, organizer, track, start_date AS startDate, deadline, result_date AS resultDate, status, notes FROM Contest WHERE id = ?"
         )
         .get(contestId);
-      if (!c) return { content: [{ type: "text", text: JSON.stringify({ error: "æœªæ‰¾åˆ°", contestId }) }] };
+      if (!c) return { content: [{ type: "text", text: JSON.stringify({ error: "Î´ÕÒµ½", contestId }) }] };
       const projects = db
         .prepare(
           "SELECT p.name, p.path, p.summary, p.tags, p.last_note AS lastNote FROM ContestProject cp JOIN Project p ON p.id = cp.project_id WHERE cp.contest_id = ?"
@@ -153,7 +153,7 @@ server.registerTool(
         .all(contestId);
       const phase = stage ?? phaseOf(c.status);
       if (!PHASES.includes(phase))
-        return { content: [{ type: "text", text: JSON.stringify({ error: `stage é¡»ä¸ºï¼š${PHASES.join("/")}` }) }] };
+        return { content: [{ type: "text", text: JSON.stringify({ error: `stage ÐëÎª£º${PHASES.join("/")}` }) }] };
       const packet = buildContestInputPacket(c, projects, phase);
       return { content: [{ type: "text", text: packet }] };
     } finally {

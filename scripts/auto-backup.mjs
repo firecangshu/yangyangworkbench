@@ -1,5 +1,5 @@
 /**
- * 雀台自动备份（M10）—— Windows 计划任务每日调用
+ * 工作台自动备份（M10）—— Windows 计划任务每日调用
  *   node scripts/auto-backup.mjs
  * 与手动备份 API 同源同构：dev.db 单文件副本 + manifest.json 计数快照。
  * 独立于 dev server（node:sqlite 直读计数），保留最近 14 份自动备份。
@@ -37,7 +37,7 @@ const counts = {
 };
 db.close();
 
-copyFileSync(dbPath, join(dir, "queetai.db"));
+copyFileSync(dbPath, join(dir, "workbench.db"));
 writeFileSync(
   join(dir, "manifest.json"),
   JSON.stringify({ type: "auto", createdAt: new Date().toISOString(), counts, dbCopied: true }, null, 2),

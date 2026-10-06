@@ -1,6 +1,6 @@
 @echo off
 setlocal
-rem Queetai launcher: start local server if not running, then open Edge app-mode window
+rem Workbench launcher: start local server if not running, then open Edge app-mode window
 rem This file lives INSIDE the app dir; %~dp0 resolves the (Unicode) path at runtime.
 set "APP_DIR=%~dp0"
 set "APP_DIR=%APP_DIR:~0,-1%"

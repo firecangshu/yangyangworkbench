@@ -11,7 +11,7 @@ const seedConnections = [
     accountNotes: "多模型统一客户端：云端 API 与本地模型（Ollama）一个界面切换，key 存本机",
     credentialRef: "Cherry Studio 应用内设置 → 模型服务商",
     tags: "模型,多账号,本地+云",
-    notes: "外接高星工具 ~50k★，负责模型调用与账号切换，雀台不重复造轮子",
+    notes: "外接高星工具 ~50k★，负责模型调用与账号切换，工作台不重复造轮子",
   },
   {
     toolName: "Vaultwarden",
@@ -20,7 +20,7 @@ const seedConnections = [
     accountNotes: "密码/API key 保险库（Bitwarden 兼容，Docker 自托管）",
     credentialRef: "待部署：部署后此处填本机服务地址",
     tags: "密码,凭据",
-    notes: "外接高星工具 ~66k★；雀台各工具的 credentialRef 应逐步指向 Vaultwarden 条目",
+    notes: "外接高星工具 ~66k★；工作台各工具的 credentialRef 应逐步指向 Vaultwarden 条目",
   },
   {
     toolName: "Loomy",
@@ -80,7 +80,7 @@ const seedConnections = [
     toolName: "GitHub",
     category: "platform",
     entryUrl: "https://github.com",
-    accountNotes: "开源仓库托管；雀台规划参考 apache/maka 亦源于此",
+    accountNotes: "开源仓库托管；工作台规划参考 apache/maka 亦源于此",
     credentialRef: "GitHub 账号",
     tags: "开源,代码",
     notes: "skill 项目与比赛工程的代码归档处",

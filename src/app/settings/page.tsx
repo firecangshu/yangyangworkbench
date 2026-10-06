@@ -22,9 +22,9 @@ type ScanReport = {
 
 const MCP_SNIPPET = `{
   "mcpServers": {
-    "queetai": {
+    "yangyangworkbench": {
       "command": "node",
-      "args": ["E:\\\\Documents\\\\Loomy Workspace\\\\工作台\\\\雀台\\\\mcp\\\\server.mjs"]
+      "args": ["E:\\\\Documents\\\\Loomy Workspace\\\\工作台\\\\工作台\\\\mcp\\\\server.mjs"]
     }
   }
 }`;
@@ -61,7 +61,7 @@ export default function SettingsPage() {
   const [copiedBw, setCopiedBw] = useState(false);
 
   useEffect(() => {
-    setThemeState(localStorage.getItem("queetai-theme") || "spark");
+    setThemeState(localStorage.getItem("workbench-theme") || "spark");
   }, []);
 
   function chooseTheme(t: string) {

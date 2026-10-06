@@ -75,8 +75,8 @@ export default function ContestsPage() {
   // M32：助手确认融入后即时重取比赛/材料/SOP，本页与首页/日历有机回显
   useEffect(() => {
     const h = () => load();
-    window.addEventListener("queetai-contests-changed", h);
-    return () => window.removeEventListener("queetai-contests-changed", h);
+    window.addEventListener("workbench-contests-changed", h);
+    return () => window.removeEventListener("workbench-contests-changed", h);
   }, [load]);
 
   async function createSop() {

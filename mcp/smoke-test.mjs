@@ -7,12 +7,12 @@ async function main() {
     args: ["mcp/server.mjs"],
     cwd: process.cwd(),
   });
-  const client = new Client({ name: "queetai-test", version: "1.0.0" });
+  const client = new Client({ name: "workbench-test", version: "1.0.0" });
   await client.connect(transport);
 
   const tools = await client.listTools();
   console.log("TOOLS:", tools.tools.map((t) => t.name).join(", "));
-  if (tools.tools.length !== 5) throw new Error("工具数应为 5");
+  if (tools.tools.length !== 5) throw new Error("工具数应�?5");
 
   const projects = await client.callTool({ name: "list_projects", arguments: {} });
   const pText = projects.content[0].text;
@@ -38,14 +38,14 @@ async function main() {
   const evData = JSON.parse(ev.content[0].text);
   console.log("add_event =", evData.ok, evData.action);
 
-  // M30 build_roadshow_input：显式 stage 与缺省推断两条路径都验证
+  // M30 build_roadshow_input：显�?stage 与缺省推断两条路径都验证
   const pkt = await client.callTool({ name: "build_roadshow_input", arguments: { contestId: gosim.id, stage: "prepare" } });
   const pktText = pkt.content[0].text;
-  if (!pktText.includes("路演输入包") || !pktText.includes("结果日") || !pktText.includes("PPT"))
+  if (!pktText.includes("路演输入�?) || !pktText.includes("结果�?) || !pktText.includes("PPT"))
     throw new Error("build_roadshow_input(prepare) packet 校验失败");
-  console.log("build_roadshow_input(prepare) 产物含 PPT/预测问答 =", pktText.includes("PPT") && pktText.includes("预测问答"));
+  console.log("build_roadshow_input(prepare) 产物�?PPT/预测问答 =", pktText.includes("PPT") && pktText.includes("预测问答"));
   const pktAuto = await client.callTool({ name: "build_roadshow_input", arguments: { contestId: gosim.id } });
-  console.log("build_roadshow_input(缺省推断) 含当前阶段行 =", pktAuto.content[0].text.includes("当前阶段："));
+  console.log("build_roadshow_input(缺省推断) 含当前阶段行 =", pktAuto.content[0].text.includes("当前阶段�?));
 
   await client.close();
   console.log("MCP_SMOKE_PASS");

@@ -1,5 +1,5 @@
 /**
- * 雀台多账号启动卡 · 启动器（M9）
+ * 工作台多账号启动卡 · 启动器（M9）
  *
  * 由 /api/connections/:id/launch 以全字面量命令行调起：
  *   node scripts/launch-connection.mjs

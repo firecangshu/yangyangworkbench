@@ -1,5 +1,5 @@
 /**
- * 雀台截止提醒（M10）—— Windows 计划任务每日调用
+ * 工作台截止提醒（M10）—— Windows 计划任务每日调用
  *   node scripts/deadline-notify.mjs
  * node:sqlite 直读 dev.db，无需 dev server。对未终结的比赛：
  *   截止前 7/3/1/0 天各弹一次 Windows toast（状态文件防重复）。

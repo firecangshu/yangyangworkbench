@@ -47,7 +47,7 @@ export async function POST() {
 
   // 复制 SQLite 文件（Windows 下可复制被打开的 db）
   const dbSrc = path.join(process.cwd(), "prisma", "dev.db");
-  const dbDst = path.join(dir, "queetai.db");
+  const dbDst = path.join(dir, "workbench.db");
   let dbCopied = false;
   if (existsSync(dbSrc)) {
     await copyFile(dbSrc, dbDst);
