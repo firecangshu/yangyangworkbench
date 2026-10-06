@@ -79,7 +79,8 @@ export function DashboardLayoutCanvas() {
       const ti = vis.findIndex((x) => x.id === overId);
       if (fi < 0 || ti < 0) return l;
       const [moved] = vis.splice(fi, 1);
-      vis.splice(ti, 0, moved);
+      // 向前拖（fi<ti）时，移除源卡后目标已左移一位，需插到 ti-1，才能让被拖卡落在目标原位（而非其之后）。
+      vis.splice(fi < ti ? ti - 1 : ti, 0, moved);
       const order = [...vis, ...hid].map((o) => o.id);
       return order.map((id) => l.find((x) => x.id === id)!);
     });
@@ -114,9 +115,11 @@ export function DashboardLayoutCanvas() {
     const up = () => setRz(null);
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up); // 手势中断/失焦也收尾，防监听器残留持续误改 colSpan
     return () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
     };
   }, [rz]);
   const undo = () => {
