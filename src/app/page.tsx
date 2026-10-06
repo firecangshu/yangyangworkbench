@@ -172,6 +172,13 @@ export default function Dashboard() {
     return () => window.removeEventListener("queetai-notes-changed", h);
   }, [reloadNotes]);
 
+  // M32：助手确认融入后即时重取比赛/里程碑/待办，各板块有机回显
+  useEffect(() => {
+    const h = () => load();
+    window.addEventListener("queetai-contests-changed", h);
+    return () => window.removeEventListener("queetai-contests-changed", h);
+  }, [load]);
+
   async function launchConn(c: Connection) {
     setBusyConn(c.id);
     await fetch(`/api/connections/${c.id}/launch`, { method: "POST" });

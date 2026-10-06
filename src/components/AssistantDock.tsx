@@ -1,14 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { IntegrationPlan } from "@/lib/contest-integration";
 
 type Provider = { id: string; label: string; model: string; note: string; keyFile: string; hasKey: boolean };
 type GenMeta = { contestId: number; deliverableName: string; stage: string };
-type Msg = { role: "user" | "assistant"; content: string; tools?: { name: string; args: unknown }[]; degraded?: boolean; meta?: GenMeta; registered?: boolean };
+type Integrated = { contestId: number; action: string; delivAdded: number; noteAdded: number };
+type Msg = { role: "user" | "assistant"; content: string; tools?: { name: string; args: unknown }[]; degraded?: boolean; meta?: GenMeta; registered?: boolean; integration?: IntegrationPlan; integrated?: Integrated };
 
 const QUICK = [
   "现在工作台是什么状态？有哪些比赛快到期了？",
   "帮我登记一个新比赛",
+  "融入新比赛：我把官网资讯粘贴给你（下条消息发资料）",
   "最近我该推进哪件事？",
 ];
 
@@ -84,6 +87,7 @@ export function AssistantDock({ width = 360 }: { width?: number }) {
         tools: j.tools,
         degraded: !!j.degraded,
         meta,
+        integration: j.integration ?? undefined,
       }]);
     } catch (e) {
       setMsgs([...next, { role: "assistant", content: `网络错误：${String(e)}`, degraded: true, meta }]);
@@ -103,6 +107,33 @@ export function AssistantDock({ width = 360 }: { width?: number }) {
     });
     if (!res.ok) return;
     setMsgs((prev) => prev.map((x, i) => (i === idx ? { ...x, registered: true } : x)));
+  }
+
+  // 「确认融入」：用户看过预览后一按 → /api/integrate 跨板块事务落库（方案甲的确认门）
+  const [integrating, setIntegrating] = useState<number | null>(null);
+  async function confirmIntegrate(m: Msg, idx: number) {
+    if (!m.integration || integrating !== null) return;
+    setIntegrating(idx);
+    try {
+      const res = await fetch("/api/integrate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: m.integration }),
+      });
+      const j = await res.json();
+      if (res.ok && j.ok) {
+        setMsgs((prev) => prev.map((x, i) => (i === idx ? { ...x, integrated: { contestId: j.contestId, action: j.action, delivAdded: j.delivAdded, noteAdded: j.noteAdded } } : x)));
+        // 广播：日历/首页待办即时刷新提醒（复用 M31 事件）；比赛列表切页挂载即取到新赛
+        window.dispatchEvent(new Event("queetai-notes-changed"));
+        window.dispatchEvent(new Event("queetai-contests-changed"));
+      } else {
+        setMsgs((prev) => prev.map((x, i) => (i === idx ? { ...x, content: x.content + `\n⚠ 融入失败：${j.error ?? res.status}` } : x)));
+      }
+    } catch (e) {
+      setMsgs((prev) => prev.map((x, i) => (i === idx ? { ...x, content: x.content + `\n⚠ 融入失败：${String(e)}` } : x)));
+    } finally {
+      setIntegrating(null);
+    }
   }
 
   const cur = providers.find((p) => p.id === provider);
@@ -163,9 +194,46 @@ export function AssistantDock({ width = 360 }: { width?: number }) {
                 <div className="mt-1.5 flex flex-wrap gap-1 border-t border-slate-200 pt-1.5">
                   {m.tools.map((t, k) => (
                     <span key={k} className="rounded bg-white px-1.5 py-0.5 text-xs text-slate-500">
-                      🔧 {t.name === "query_status" ? "查询了工作台状态" : t.name === "add_contest" ? `登记比赛「${(t.args as { name?: string })?.name ?? "?"}」` : t.name}
+                      🔧 {t.name === "query_status" ? "查询了工作台状态" : t.name === "add_contest" ? `登记比赛「${(t.args as { name?: string })?.name ?? "?"}」` : t.name === "analyze_contest_integration" ? "生成了融入方案预览" : t.name}
                     </span>
                   ))}
+                </div>
+              )}
+              {m.integration && !m.degraded && (
+                <div className="mt-2 rounded-lg border border-blue-200 bg-blue-50/60 p-2 text-xs">
+                  <div className="font-semibold text-blue-800">🧩 融入方案预览 · {m.integration.contest.name}</div>
+                  <div className="mt-1 text-slate-600">
+                    {m.integration.match.action === "update"
+                      ? <>对齐更新到已有比赛「{m.integration.match.matchedName}」#{m.integration.match.contestId}</>
+                      : <>新建比赛</>}
+                    {m.integration.contest.deadline ? ` · 截止 ${m.integration.contest.deadline}` : ""}
+                  </div>
+                  {m.integration.warnings.length > 0 && (
+                    <ul className="mt-1 list-disc pl-4 text-amber-700">
+                      {m.integration.warnings.map((w, k) => <li key={k}>{w}</li>)}
+                    </ul>
+                  )}
+                  <div className="mt-1 text-slate-500">
+                    材料 {m.integration.deliverables.length} 项{m.integration.deliverableSource === "sop-fallback" ? "（标准手册底稿）" : ""} · 提醒 {m.integration.reminders.length} 条 · 里程碑 {m.integration.milestones.length} 个
+                  </div>
+                  <details className="mt-1">
+                    <summary className="cursor-pointer text-blue-600">展开明细</summary>
+                    <ul className="mt-1 space-y-0.5 pl-4 text-slate-600">
+                      {m.integration.deliverables.map((d, k) => <li key={"d" + k}>📦 {d.name}{d.standard && d.standard !== "待定" ? `（${d.standard}）` : ""}</li>)}
+                      {m.integration.reminders.map((r, k) => <li key={"r" + k}>🔔 {r.date} {r.text}</li>)}
+                    </ul>
+                  </details>
+                  {m.integrated ? (
+                    <div className="mt-1.5 font-medium text-emerald-700">✓ 已融入：{m.integrated.action === "update" ? "对齐更新" : "新建"}比赛 #{m.integrated.contestId}，材料 {m.integrated.delivAdded} 项、提醒 {m.integrated.noteAdded} 条</div>
+                  ) : (
+                    <button
+                      onClick={() => confirmIntegrate(m, i)}
+                      disabled={integrating !== null}
+                      className="mt-1.5 rounded bg-blue-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {integrating === i ? "融入中…" : "✓ 确认融入"}
+                    </button>
+                  )}
                 </div>
               )}
               {m.meta && !m.degraded && (

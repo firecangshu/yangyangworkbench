@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { logEvent } from "@/lib/events";
-import { contestJSON } from "@/lib/serializers";
 import { getProvider, readKey, ASSISTANT_PROVIDERS } from "@/lib/assistant";
+import { buildIntegrationPlan, type ExtractedContest, type IntegrationPlan } from "@/lib/contest-integration";
 
 /**
  * AI 对话助手（M17）：POST /api/assistant/chat
@@ -12,9 +11,9 @@ import { getProvider, readKey, ASSISTANT_PROVIDERS } from "@/lib/assistant";
  */
 
 const SYSTEM_PROMPT = `你是「杨杨的AI比赛专用工作台」内置的AI助手，帮助用户协调比赛创作工作。
-你可以调用工具：query_status 查询工作台状态（项目/比赛/工具卡数量、临近截止的比赛），add_contest 登记新比赛。
-铁律：绝不编造事实。用户没说的日期、主办方、链接，一律留空并说明「未提供，之后可补」；日期必须是用户明确给出的（红线：不脑补日期）。
-登记比赛前先复述你理解的信息；如缺少名称之外的关键项，直接登记空字段并在回复里说明。
+你可以调用工具：query_status 查询工作台状态（项目/比赛/工具卡数量、临近截止的比赛），analyze_contest_integration 赛事融入分析（新比赛入场的唯一入口）。
+当用户要登记/融入/规划任何新比赛时（无论一句话还是粘贴整段官网资讯）：一律先调用 analyze_contest_integration 生成「融入方案预览」——它会把资讯抽成结构化字段、去重比对现有比赛、拆解材料清单与日历提醒，供用户逐项核对；该工具只读，绝不写库。只有用户在预览卡上点「确认融入」后，系统才会真正落库联动各板块。严禁绕过确认门直接写库或声称已录入。
+铁律：绝不编造事实。用户没说的日期、主办方、链接，一律留空（会标「待定」）；日期必须是用户明确给出的（红线：不脑补日期）。
 回答用中文、口语化、简短（不超过150字，列表除外）。`;
 
 const TOOLS = [
@@ -29,24 +28,73 @@ const TOOLS = [
   {
     type: "function",
     function: {
-      name: "add_contest",
-      description: "登记一个新比赛到工作台台账",
+      name: "analyze_contest_integration",
+      description: "赛事融入分析（只读）：从用户提供的比赛官网资讯抽取结构化字段，去重比对现有比赛，生成融入方案预览（Contest+材料清单+日历提醒+里程碑）。绝不写库，仅供用户确认。",
       parameters: {
         type: "object",
         properties: {
           name: { type: "string", description: "比赛名称（必填）" },
-          organizer: { type: "string", description: "主办方；用户没说就留空" },
-          track: { type: "string", description: "赛道/方向；没说留空" },
+          organizer: { type: "string", description: "主办方；没说留空" },
+          track: { type: "string", description: "赛道/方向" },
+          theme: { type: "string", description: "赛事主题" },
+          content: { type: "string", description: "赛事内容概述" },
+          trackAnalysis: { type: "string", description: "赛道分析（根据资料归纳，无把握留空）" },
           startDate: { type: "string", description: "开始日期 YYYY-MM-DD；用户明确说了才填，绝不猜" },
-          deadline: { type: "string", description: "截止日期 YYYY-MM-DD；用户明确说了才填，绝不猜" },
+          deadline: { type: "string", description: "提交截止日期 YYYY-MM-DD；明确说了才填" },
+          resultDate: { type: "string", description: "结果公布日期 YYYY-MM-DD；明确说了才填" },
           submitLink: { type: "string", description: "报名/提交链接；没说留空" },
           notes: { type: "string", description: "备注" },
+          timeNodes: {
+            type: "array",
+            description: "其他关键时间节点（报名/初筛/路演等），每项 label+date；date 未明确则留空",
+            items: {
+              type: "object",
+              properties: {
+                label: { type: "string" },
+                date: { type: "string", description: "YYYY-MM-DD，未明确留空" },
+              },
+            },
+          },
+          requirements: {
+            type: "array",
+            description: "官方递交要求（内容/材料/标准/格式），每项 name+standard；按官方原文，不臆造",
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string", description: "材料/要求名称" },
+                standard: { type: "string", description: "标准/格式要求；无则留空" },
+                deadline: { type: "string", description: "该项截止日 YYYY-MM-DD；无则留空" },
+              },
+            },
+          },
+          source: { type: "string", description: "用户提供的原始资讯文本存档（可含 URL），直接回传以便入库溯源" },
         },
         required: ["name"],
       },
     },
   },
 ];
+
+/** 把 LLM 工具参数防御式转成 ExtractedContest（数组/字段缺失一律兜底，不臆造） */
+function toExtracted(args: Record<string, unknown>): ExtractedContest {
+  const s = (v: unknown) => String(v ?? "").trim();
+  const arr = (v: unknown) => (Array.isArray(v) ? v : []);
+  const timeNodes = arr(args.timeNodes).map((n) => {
+    const o = (n ?? {}) as Record<string, unknown>;
+    return { label: s(o.label), date: s(o.date) };
+  }).filter((n) => n.label);
+  const requirements = arr(args.requirements).map((r) => {
+    const o = (r ?? {}) as Record<string, unknown>;
+    return { name: s(o.name), standard: s(o.standard), deadline: s(o.deadline) };
+  }).filter((r) => r.name);
+  return {
+    name: s(args.name), organizer: s(args.organizer), track: s(args.track),
+    theme: s(args.theme), content: s(args.content), trackAnalysis: s(args.trackAnalysis),
+    startDate: s(args.startDate), deadline: s(args.deadline), resultDate: s(args.resultDate),
+    submitLink: s(args.submitLink), notes: s(args.notes),
+    timeNodes, requirements, source: s(args.source),
+  };
+}
 
 async function runTool(name: string, args: Record<string, unknown>) {
   if (name === "query_status") {
@@ -63,27 +111,17 @@ async function runTool(name: string, args: Record<string, unknown>) {
     const openContests = await prisma.contest.count({ where: { status: { in: ["research", "registered", "preparing"] } } });
     return { projects, contests, openContests, connections, deadlineSoon: soon };
   }
-  if (name === "add_contest") {
-    const ctName = String(args.name ?? "").trim();
-    if (!ctName) return { error: "比赛名称缺失，无法登记" };
-    const created = await prisma.$transaction(async (tx) => {
-      const c = await tx.contest.create({
-        data: {
-          name: ctName,
-          organizer: String(args.organizer ?? ""),
-          track: String(args.track ?? ""),
-          startDate: String(args.startDate ?? ""),
-          deadline: String(args.deadline ?? ""),
-          status: "research",
-          submitLink: String(args.submitLink ?? ""),
-          notes: String(args.notes ?? ""),
-        },
-      });
-      await logEvent(tx, "contest", c.id, "create", null, contestJSON(c));
-      return c;
+  if (name === "analyze_contest_integration") {
+    // 只读：抽取字段→去重比对现有赛→组装融入方案预览。全程不写库（方案甲，写入待用户确认）。
+    const ex = toExtracted(args);
+    const existing = await prisma.contest.findMany({ select: { id: true, name: true, organizer: true, deadline: true } });
+    const tpl = await prisma.sopTemplate.findFirst({
+      where: { name: "赛事融入标准手册" },
+      include: { steps: { orderBy: { sortOrder: "asc" } } },
     });
-    const missing = ["organizer", "startDate", "deadline", "submitLink"].filter((k) => !String(args[k] ?? "").trim());
-    return { ok: true, contest: contestJSON(created), missingFields: missing };
+    const steps = (tpl?.steps ?? []).map((s) => s.name);
+    const plan = buildIntegrationPlan(ex, existing, steps);
+    return plan;
   }
   return { error: `未知工具 ${name}` };
 }
@@ -113,6 +151,7 @@ export async function POST(req: Request) {
 
   const messages: ChatMessage[] = [{ role: "system", content: SYSTEM_PROMPT }, ...history];
   const toolsCalled: { name: string; args: unknown }[] = [];
+  let integration: IntegrationPlan | null = null;
 
   const call = async (payload: Record<string, unknown>) => {
     const res = await fetch(`${provider.baseUrl}/chat/completions`, {
@@ -145,6 +184,7 @@ export async function POST(req: Request) {
         ok: true, provider: provider.id, model: provider.model,
         reply: String(msg?.content ?? "（模型返回空回复）"),
         tools: toolsCalled,
+        integration,
       });
     }
     messages.push(msg);
@@ -154,6 +194,9 @@ export async function POST(req: Request) {
       const fnName = String(tc.function?.name ?? "");
       toolsCalled.push({ name: fnName, args });
       const result = await runTool(fnName, args).catch((e) => ({ error: String(e) }));
+      if (fnName === "analyze_contest_integration" && (result as { error?: string })?.error === undefined) {
+        integration = result as IntegrationPlan;
+      }
       messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) });
     }
     try {
@@ -172,5 +215,6 @@ export async function POST(req: Request) {
     ok: true, provider: provider.id, model: provider.model,
     reply: String(final?.content ?? "（已达工具调用轮次上限，请把需求拆简单一点再问）"),
     tools: toolsCalled,
+    integration,
   });
 }

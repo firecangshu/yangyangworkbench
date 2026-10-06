@@ -36,6 +36,7 @@ model Contest {
   updatedAt   DateTime @updatedAt @map("updated_at")
   deliverables Deliverable[]
   links        ContestProject[]
+  dossier      ContestDossier?
 }
 
 model Deliverable {
@@ -128,6 +129,25 @@ model LaunchSceneItem {
   sortOrder Int         @default(0) @map("sort_order")
   scene     LaunchScene @relation(fields: [sceneId], references: [id], onDelete: Cascade)
   @@unique([sceneId, kind, refId])
+}
+
+// M32 赛事融入手册：AI 助手从用户提供的官网资讯抽取的结构化档案（与 Contest 1:1）。
+// 缺项一律「待定」不脑补（红线④）；aiDraft=true 表示 AI 草拟待人工确认，确认融入后写 confirmedAt。
+// timeInfo/requirements 存 JSON 字符串（沿用 SQLite 文本列范式），source 存档用户提供的原始资讯。
+model ContestDossier {
+  id            Int       @id @default(autoincrement())
+  contestId     Int       @unique @map("contest_id")
+  timeInfo      String    @default("") @map("time_info")
+  content       String    @default("")
+  theme         String    @default("")
+  trackAnalysis String    @default("") @map("track_analysis")
+  requirements  String    @default("")
+  source        String    @default("")
+  aiDraft       Boolean   @default(false) @map("ai_draft")
+  confirmedAt   DateTime? @map("confirmed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  contest       Contest   @relation(fields: [contestId], references: [id], onDelete: Cascade)
 }
 
 // M31 日历备注/提醒：与比赛解耦的按天自由条目。date 写入前一律 normDate 归一。

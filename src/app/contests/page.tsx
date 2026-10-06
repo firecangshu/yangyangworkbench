@@ -72,6 +72,13 @@ export default function ContestsPage() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
+  // M32：助手确认融入后即时重取比赛/材料/SOP，本页与首页/日历有机回显
+  useEffect(() => {
+    const h = () => load();
+    window.addEventListener("queetai-contests-changed", h);
+    return () => window.removeEventListener("queetai-contests-changed", h);
+  }, [load]);
+
   async function createSop() {
     if (!sopForm.name.trim()) { setError("模板名称是必填项"); return; }
     const res = await fetch("/api/sops", {

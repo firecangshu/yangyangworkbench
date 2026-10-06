@@ -49,6 +49,33 @@ async function main() {
   await prisma.calendarNote.delete({ where: { id: note.id } });
   await prisma.calendarNote.delete({ where: { id: reminder.id } });
 
+  // 1c. M32 ContestDossier round-trip（与 Contest 1:1 + Cascade）：建赛→建档案→回读→级联删
+  const dContest = await prisma.contest.create({ data: { name: "__m32_probe__" } });
+  const dossier = await prisma.contestDossier.create({
+    data: {
+      contestId: dContest.id,
+      timeInfo: JSON.stringify({ submit: "待定", roadshow: "待定" }),
+      theme: "__m32_theme__",
+      trackAnalysis: "赛道分析文本",
+      requirements: JSON.stringify([{ name: "项目简介", standard: "300字", source: "待定" }]),
+      aiDraft: true,
+    },
+  });
+  const dBack = await prisma.contestDossier.findUnique({ where: { contestId: dContest.id } });
+  if (!dBack || dBack.theme !== "__m32_theme__" || !dBack.aiDraft || dBack.confirmedAt) {
+    console.error("FAIL: ContestDossier round-trip (1:1 unique by contestId / aiDraft)");
+    process.exit(1);
+  }
+  if (JSON.parse(dBack.requirements)[0].name !== "项目简介") {
+    console.error("FAIL: ContestDossier requirements JSON round-trip");
+    process.exit(1);
+  }
+  // 删赛应级联删掉 dossier（红线②只删台账行）
+  await prisma.contest.delete({ where: { id: dContest.id } });
+  const gone = await prisma.contestDossier.findUnique({ where: { contestId: dContest.id } });
+  if (gone) { console.error("FAIL: ContestDossier 未随 Contest 级联删除"); process.exit(1); }
+  void dossier;
+
   // 2. 连接卡种子存在性
   const magician = await prisma.connection.findFirst({ where: { toolName: "黑客松路演魔术师" } });
   if (!magician || !magician.launchCommand.includes("app.py") || magician.entryUrl !== "http://localhost:7860") {
