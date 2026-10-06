@@ -76,7 +76,7 @@ export function MonthCalendar({
 
   // 写库后广播（复用全局 CustomEvent 桥接范式），供首页今日枢纽即时重取待办
   const emitChanged = () => {
-    if (typeof window !== "undefined") window.dispatchEvent(new Event("queetai-notes-changed"));
+    if (typeof window !== "undefined") window.dispatchEvent(new Event("workbench-notes-changed"));
   };
 
   const byDay = useMemo(() => {

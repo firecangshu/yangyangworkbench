@@ -1,5 +1,5 @@
 // 首页卡片布局配置（M27 尺寸/顺序/显隐 + M28 卡内字号/卡片色/文字色）。
-// 权威源=本机浏览器 localStorage（与主题 queetai-theme 同一处），不入库、不碰业务数据（红线①③⑤）。
+// 权威源=本机浏览器 localStorage（与主题 workbench-theme 同一处），不入库、不碰业务数据（红线①③⑤）。
 export type BlockId =
   | "hero" // 问候 + 时钟 + 内嵌月历（今日枢纽）
   | "roadshow" // 备赛枢纽（按阶段浮现的 Nudge 待办引导）
@@ -163,10 +163,10 @@ export const DEFAULT_LAYOUT: BlockCfg[] = [
   { id: "projects", colSpan: 12, visible: true, fs: "md", skin: "default", fg: "auto" },
 ];
 
-const KEY = "queetai-dashboard-layout";
+const KEY = "workbench-dashboard-layout";
 
 /** 布局变更事件：设置页点确定后派发，已打开的首页即时重排（同一浏览器标签内） */
-export const LAYOUT_EVENT = "queetai-dashboard-layout";
+export const LAYOUT_EVENT = "workbench-dashboard-layout";
 
 const FONTS: FontScale[] = ["sm", "md", "lg", "xl"];
 const FGS: FgChoice[] = ["auto", "dark", "light", "brand"];

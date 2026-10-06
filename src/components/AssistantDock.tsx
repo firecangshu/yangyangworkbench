@@ -124,8 +124,8 @@ export function AssistantDock({ width = 360 }: { width?: number }) {
       if (res.ok && j.ok) {
         setMsgs((prev) => prev.map((x, i) => (i === idx ? { ...x, integrated: { contestId: j.contestId, action: j.action, delivAdded: j.delivAdded, noteAdded: j.noteAdded } } : x)));
         // 广播：日历/首页待办即时刷新提醒（复用 M31 事件）；比赛列表切页挂载即取到新赛
-        window.dispatchEvent(new Event("queetai-notes-changed"));
-        window.dispatchEvent(new Event("queetai-contests-changed"));
+        window.dispatchEvent(new Event("workbench-notes-changed"));
+        window.dispatchEvent(new Event("workbench-contests-changed"));
       } else {
         setMsgs((prev) => prev.map((x, i) => (i === idx ? { ...x, content: x.content + `\n⚠ 融入失败：${j.error ?? res.status}` } : x)));
       }

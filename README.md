@@ -18,7 +18,7 @@
 ## 快速开始
 
 ```powershell
-cd 雀台
+cd yangyangworkbench
 npm install
 npm run db:push
 npm run db:seed          # 项目种子
@@ -34,9 +34,9 @@ npm run dev              # http://localhost:3000
 ```json
 {
   "mcpServers": {
-    "queetai": {
+    "yangyangworkbench": {
       "command": "node",
-      "args": ["E:\\Documents\\Loomy Workspace\\工作台\\雀台\\mcp\\server.mjs"]
+      "args": ["E:\\Documents\\Loomy Workspace\\工作台\\yangyangworkbench\\mcp\\server.mjs"]
     }
   }
 }

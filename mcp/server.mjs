@@ -26,7 +26,7 @@ function openDbWritable() {
 }
 
 const server = new McpServer({
-  name: "queetai",
+  name: "yangyangworkbench",
   version: "0.4.0",
 });
 
@@ -164,4 +164,4 @@ server.registerTool(
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
-console.error("[queetai-mcp] ready, db=" + DB_PATH);
+console.error("[yangyangworkbench-mcp] ready, db=" + DB_PATH);
