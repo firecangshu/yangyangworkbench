@@ -6,7 +6,7 @@ node_modules/
 .DS_Store
 next-env.d.ts
 
-# 雀台追加（红线：凭据不入库——git 仓库也是库；数据由 backups 体系负责）
+# 工作台追加（红线：凭据不入库——git 仓库也是库；数据由 backups 体系负责）
 credentials/
 backups/
 dev.log
