@@ -25,6 +25,13 @@ export function DashboardLayoutCanvas() {
   const [applied, setApplied] = useState<BlockCfg[]>(() => clone(DEFAULT_LAYOUT));
   const [sel, setSel] = useState<BlockId | null>(null);
   const [msg, setMsg] = useState("");
+  // M29.4 拖右缘改宽度的缩放态：记住起点 x、起始 colSpan、每列像素宽（吸附整列）
+  const [rz, setRz] = useState<{
+    id: BlockId;
+    startX: number;
+    startSpan: number;
+    colUnit: number;
+  } | null>(null);
 
   // 首帧用 DEFAULT 保 hydration 一致，挂载后再读本机配置
   useEffect(() => {
@@ -83,6 +90,35 @@ export function DashboardLayoutCanvas() {
     setApplied(clone(draft));
     setMsg(`已同步：${draft.filter((c) => c.visible).length} 张卡固定到首页`);
   };
+
+  // M29.4 手柄按下：以画板网格实际宽度折算「一列多少像素」，位移除以它 = 增减列数（四舍五入吸附整列）。
+  const startRz = (e: React.PointerEvent, c: BlockCfg) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const grid = document.getElementById("canvas") as HTMLElement | null;
+    if (!grid) return;
+    const gap = 16; // 与 gap-4 对齐
+    const colUnit = (grid.clientWidth + gap) / 12;
+    setSel(c.id);
+    setRz({ id: c.id, startX: e.clientX, startSpan: c.colSpan, colUnit });
+  };
+
+  // rz 非空期间挂全局 pointermove/pointerup：拖动实时改 colSpan（clamp 1~12），松手结束。
+  useEffect(() => {
+    if (!rz) return;
+    const move = (e: PointerEvent) => {
+      const dc = Math.round((e.clientX - rz.startX) / rz.colUnit);
+      const ns = Math.min(12, Math.max(1, rz.startSpan + dc));
+      setDraft((l) => l.map((x) => (x.id === rz.id ? { ...x, colSpan: ns } : x)));
+    };
+    const up = () => setRz(null);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+  }, [rz]);
   const undo = () => {
     setDraft(clone(applied));
     setMsg("");
@@ -159,7 +195,7 @@ export function DashboardLayoutCanvas() {
             >
               <div
                 onClick={() => setSel(c.id)}
-                className={`card-fluid h-full cursor-pointer rounded-xl border p-4 ${
+                className={`card-fluid group relative h-full cursor-pointer rounded-xl border p-4 ${
                   sel === c.id ? "ring-2 ring-brand" : ""
                 }`}
               >
@@ -184,6 +220,18 @@ export function DashboardLayoutCanvas() {
                 <div className="mt-1 text-xs opacity-70">
                   字号 ×{FONT_MULT[c.fs]} · {c.colSpan} 列宽
                 </div>
+                {/* M29.4 右缘缩放手柄：按住左右拖，按整列吸附改 colSpan */}
+                <span
+                  onPointerDown={(e) => startRz(e, c)}
+                  title="拖动改宽度（占几列）"
+                  className="absolute -right-1 top-0 z-10 flex h-full w-3 cursor-ew-resize touch-none items-center justify-center"
+                >
+                  <i
+                    className={`block h-2/3 w-1 rounded ${
+                      rz?.id === c.id ? "bg-brand" : "bg-transparent group-hover:bg-brand/40"
+                    }`}
+                  />
+                </span>
               </div>
             </div>
           ))}
