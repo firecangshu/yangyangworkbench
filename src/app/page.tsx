@@ -27,7 +27,7 @@ type Project = { id: number; name: string; status: string };
 type Deliverable = { id: number; contestId: number; name: string; done: boolean; doneAt: string | null };
 type Contest = {
   id: number; name: string; organizer: string; track: string; startDate: string;
-  deadline: string; status: string; submitLink: string; notes: string; updatedAt: string;
+  deadline: string; resultDate: string; status: string; submitLink: string; notes: string; updatedAt: string;
   deliverables: Deliverable[];
   links: { id: number; project: { id: number; name: string; status: string; path: string } }[];
 };

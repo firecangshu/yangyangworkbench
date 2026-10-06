@@ -2,14 +2,28 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { dayMark, lunarYearLabel } from "@/lib/cn-calendar";
+import { deriveMilestones, type Milestone, type MilestoneType } from "@/lib/contest-playbook";
 
 type ContestBrief = {
   id: number;
   name: string;
+  startDate: string;
   deadline: string;
+  resultDate: string;
   status: string;
   deliverables: { done: boolean }[];
 };
+
+// 里程碑圆点颜色：启动=天蓝、截止=赤陶、结果按胜负（获奖=翠绿/未中=红/待定=紫）
+const DOT_CLS: Record<MilestoneType, string> = {
+  start: "bg-sky-500",
+  deadline: "bg-brand",
+  result: "bg-violet-500",
+};
+function dotCls(m: Milestone): string {
+  if (m.type !== "result") return DOT_CLS[m.type];
+  return m.status === "won" ? "bg-emerald-500" : m.status === "lost" ? "bg-red-400" : DOT_CLS.result;
+}
 
 const WEEK = ["一", "二", "三", "四", "五", "六", "日"];
 
@@ -35,6 +49,17 @@ export function MonthCalendar({
       const arr = map.get(c.deadline) ?? [];
       arr.push(c);
       map.set(c.deadline, arr);
+    }
+    return map;
+  }, [contests]);
+
+  // 里程碑按日聚合（启动/截止/结果三类），供圆点渲染
+  const msByDay = useMemo(() => {
+    const map = new Map<string, Milestone[]>();
+    for (const m of deriveMilestones(contests)) {
+      const arr = map.get(m.date) ?? [];
+      arr.push(m);
+      map.set(m.date, arr);
     }
     return map;
   }, [contests]);
@@ -102,6 +127,7 @@ export function MonthCalendar({
           if (!d) return <div key={`e${i}`} className="min-h-[clamp(78px,9cqi,112px)] rounded-lg bg-slate-50/60" />;
           const key = ymd(d);
           const items = byDay.get(key) ?? [];
+          const mss = (msByDay.get(key) ?? []).filter((m) => m.type !== "deadline");
           const isToday = key === todayStr;
           const mark = dayMark(d.getFullYear(), d.getMonth(), d.getDate());
           return (
@@ -135,6 +161,17 @@ export function MonthCalendar({
                   ◈ {c.name}
                 </div>
               ))}
+              {mss.length > 0 && (
+                <div className="mt-1 flex flex-wrap items-center gap-1">
+                  {mss.map((m, i) => (
+                    <span
+                      key={`${m.contestId}-${m.type}-${i}`}
+                      title={`${m.contestName}（${m.type === "start" ? "启动" : "结果公布"}）`}
+                      className={`inline-block h-2 w-2 shrink-0 rounded-full ${dotCls(m)} ${isToday ? "ring-1 ring-white/70" : ""}`}
+                    />
+                  ))}
+                </div>
+              )}
             </button>
           );
         })}
@@ -144,6 +181,8 @@ export function MonthCalendar({
         <span><span className="text-amber-600">■</span> 节日</span>
         <span><span className="text-teal-600">■</span> 节气</span>
         <span><span className="text-brand">◈</span> 赛事截止</span>
+        <span><span className="inline-block h-2 w-2 rounded-full bg-sky-500 align-middle" /> 启动</span>
+        <span><span className="inline-block h-2 w-2 rounded-full bg-violet-500 align-middle" /> 结果公布</span>
       </div>
       {noDeadline.length > 0 && (
         <div className="mt-2 rounded-lg bg-slate-50 p-2.5">

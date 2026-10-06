@@ -1,5 +1,5 @@
 /** M30 playbook 哨兵：验证映射/推断逻辑正确。 */
-import { GROUP_ITEMS, phaseOf, nudgesForPhase, activeNudges, nextPhasePreview } from "../src/lib/contest-playbook.js";
+import { GROUP_ITEMS, phaseOf, nudgesForPhase, activeNudges, nextPhasePreview, deriveMilestones } from "../src/lib/contest-playbook.js";
 
 function assert(cond: boolean, msg: string) { if (!cond) { console.error("FAIL:", msg); process.exit(1); } }
 
@@ -28,7 +28,17 @@ assert(nudgesForPhase("submit").length === 1, "submit 应 1 nudge");
 
 // activeNudges 过滤：done 含 "PPT" 后 prepare 少一张
 const filtered = activeNudges(prepareNudges, [{ name: "路演 PPT 已完成", done: true }]);
-assert(filtered.length === 8, `过滤后应 8，实得 ${filtered.length}`);
+assert(filtered.length === 8, `prepare 过滤后应 8，实得 ${filtered.length}`);
+
+// deriveMilestones：三个日期各出一里程碑，空日期不出
+const ms = deriveMilestones([
+  { id: 1, name: "A", startDate: "2026-01-01", deadline: "2026-02-01", resultDate: "2026-03-01", status: "won" },
+  { id: 2, name: "B", startDate: "", deadline: "2026-02-01", resultDate: "", status: "preparing" },
+]);
+assert(ms.length === 4, `里程碑应 4（A×3 + B×deadline），实得 ${ms.length}`);
+assert(ms.filter((m) => m.type === "result").length === 1, "result 里程碑应 1");
+assert(ms.filter((m) => m.type === "start").length === 1, "start 里程碑应 1（B 无 startDate）");
+assert(ms.every((m) => m.date !== ""), "里程碑不得含空日期");
 assert(!filtered.some((n) => n.label === "PPT"), "PPT 应被过滤掉");
 
 // nextPhasePreview

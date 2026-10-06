@@ -14,10 +14,10 @@ export const connectionJSON = (c: {
 
 export const contestJSON = (c: {
   id: number; name: string; organizer: string; track: string;
-  startDate: string; deadline: string; status: string; submitLink: string; notes: string;
+  startDate: string; deadline: string; resultDate: string; status: string; submitLink: string; notes: string;
 }) => ({
   id: c.id, name: c.name, organizer: c.organizer, track: c.track,
-  startDate: c.startDate, deadline: c.deadline, status: c.status, submitLink: c.submitLink, notes: c.notes,
+  startDate: c.startDate, deadline: c.deadline, resultDate: c.resultDate, status: c.status, submitLink: c.submitLink, notes: c.notes,
 });
 
 /** 启动场景成员校验：合法返回数组，非法返回错误文案 */

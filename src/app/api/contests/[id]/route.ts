@@ -33,6 +33,7 @@ export async function PATCH(
   if (typeof body.track === "string") data.track = body.track;
   if (typeof body.startDate === "string") data.startDate = body.startDate;
   if (typeof body.deadline === "string") data.deadline = body.deadline;
+  if (typeof body.resultDate === "string") data.resultDate = body.resultDate;
   if (body.status && VALID_STATUS.includes(body.status)) data.status = body.status;
   if (typeof body.submitLink === "string") data.submitLink = body.submitLink;
   if (typeof body.notes === "string") data.notes = body.notes;

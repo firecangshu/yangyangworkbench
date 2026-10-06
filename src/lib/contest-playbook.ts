@@ -123,6 +123,37 @@ export function activeNudges(
   return allNudges.filter((n) => !doneNames.some((dn) => dn.includes(n.label.toLowerCase())));
 }
 
+// ─── 里程碑派生（供日历/甘特消费；纯函数，不入库） ─────────────────────
+export type MilestoneType = "start" | "deadline" | "result";
+
+export interface Milestone {
+  date: string;
+  type: MilestoneType;
+  contestId: number;
+  contestName: string;
+  status: string;
+}
+
+export const MILESTONE_LABEL: Record<MilestoneType, string> = {
+  start: "启动", deadline: "截止", result: "结果公布",
+};
+
+/**
+ * 从比赛派生三类里程碑：startDate=启动、deadline=截止、resultDate=结果公布。
+ * 仅收录非空日期，供月历圆点与甘特分段染色共用同一份语义。
+ */
+export function deriveMilestones(
+  contests: { id: number; name: string; startDate: string; deadline: string; resultDate: string; status: string }[],
+): Milestone[] {
+  const out: Milestone[] = [];
+  for (const c of contests) {
+    if (c.startDate) out.push({ date: c.startDate, type: "start", contestId: c.id, contestName: c.name, status: c.status });
+    if (c.deadline) out.push({ date: c.deadline, type: "deadline", contestId: c.id, contestName: c.name, status: c.status });
+    if (c.resultDate) out.push({ date: c.resultDate, type: "result", contestId: c.id, contestName: c.name, status: c.status });
+  }
+  return out;
+}
+
 // ─── 下一阶段预告 ──────────────────────────────────────────────────────
 const PHASE_ORDER: Phase[] = ["research", "register", "prepare", "submit", "result"];
 

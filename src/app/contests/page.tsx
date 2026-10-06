@@ -22,6 +22,7 @@ type Contest = {
   track: string;
   startDate: string;
   deadline: string;
+  resultDate: string;
   status: string;
   submitLink: string;
   notes: string;
@@ -36,6 +37,7 @@ const emptyForm = {
   track: "",
   startDate: "",
   deadline: "",
+  resultDate: "",
   status: "research",
   submitLink: "",
   notes: "",
@@ -261,6 +263,8 @@ export default function ContestsPage() {
               value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
             <input className="rounded-lg border px-3 py-2 text-sm" placeholder="截止日 yyyy-MM-dd（可空）"
               value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} />
+            <input className="rounded-lg border px-3 py-2 text-sm" placeholder="结果公布日 yyyy-MM-dd（可空，用于甘特/日历里程碑）"
+              value={form.resultDate} onChange={(e) => setForm({ ...form, resultDate: e.target.value })} />
             <select className="rounded-lg border px-3 py-2 text-sm"
               value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
               {CONTEST_STATUS_ORDER.map((k) => (

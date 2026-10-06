@@ -27,6 +27,7 @@ export async function POST(req: Request) {
         track: String(body.track ?? ""),
         startDate: String(body.startDate ?? ""),
         deadline: String(body.deadline ?? ""),
+        resultDate: String(body.resultDate ?? ""),
         status: String(body.status ?? "research"),
         submitLink: String(body.submitLink ?? ""),
         notes: String(body.notes ?? ""),
