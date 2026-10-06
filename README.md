@@ -1,4 +1,4 @@
-# 雀台（Queetai）· AI 创作工作台
+# 杨杨的工作台
 
 本地优先的 AI 创作项目 / 比赛 / 工具中枢。**M1-M4 全部交付**。
 
@@ -27,7 +27,7 @@ npx tsx prisma/seed-connections.ts   # 连接种子
 npm run dev              # http://localhost:3000
 ```
 
-## MCP 接入（让 Claude / CodeBuddy 等查雀台数据）
+## MCP 接入（让 Claude / CodeBuddy 等查工作台数据）
 
 把下面片段粘贴到 AI 工具的 MCP 配置：
 
