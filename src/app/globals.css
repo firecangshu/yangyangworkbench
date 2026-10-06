@@ -363,8 +363,13 @@ body {
 [data-skin-tone="dark"] .card-fluid :is(.text-teal-600, .text-teal-700) {
   color: #7ee6d5 !important;
 }
-[data-skin-tone="dark"] .card-fluid :is(.text-brand, .text-red-600) {
+[data-skin-tone="dark"] .card-fluid .text-brand {
   color: #ff9a8c !important;
+}
+/* M28.1 复测修正：红字常与 bg-*-50→rgba(255,255,255,0.1) 的小签浅底同压，有效底比纯皮肤底亮一档，
+   取 #ff9a8c 压墨蓝实测只有 3.40:1（甘特「今天」小签，有效底 rgb(73,91,110)）；单独抬到 #ffc2b8 浏览器回读 4.53:1 达标。 */
+[data-skin-tone="dark"] .card-fluid .text-red-600 {
+  color: #ffc2b8 !important;
 }
 /* 卡内彩色小签（今天/待定/状态徽章这类 bg-*-50 浅底）在深底下必须同时换底：
    只提亮字而不换它自带的浅底，会出现浅字压浅底（实测 1.87:1，几乎看不见）。 */
