@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import {
   CONTEST_STATUS_LABELS,
   CONTEST_STATUS_ORDER,
   daysUntil,
 } from "@/lib/constants";
+import { activeNudges, nudgesForPhase, phaseOf } from "@/lib/contest-playbook";
 import { MonthCalendar } from "@/components/MonthCalendar";
 import { GanttView } from "@/components/GanttView";
 
@@ -307,16 +309,22 @@ export default function ContestsPage() {
         {shown.map((c) => {
           const days = daysUntil(c.deadline);
           const { done, total } = progress(c);
+          const remain = activeNudges(nudgesForPhase(phaseOf(c.status)), c.deliverables).length;
           const isOpen = expanded === c.id;
           return (
             <div key={c.id} className="card-fluid rounded-xl border bg-white">
               <div className="flex items-center justify-between gap-4 p-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium">{c.name}</span>
+                    <Link href={`/contests/${c.id}`} className="font-medium hover:text-brand hover:underline">{c.name}</Link>
                     <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
                       {CONTEST_STATUS_LABELS[c.status] ?? c.status}
                     </span>
+                    {remain > 0 && phaseOf(c.status) !== "closed" && (
+                      <Link href={`/contests/${c.id}`} className="rounded bg-brand-soft px-2 py-0.5 text-xs font-medium text-brand hover:opacity-80">
+                        还差 {remain} 项
+                      </Link>
+                    )}
                     {c.track && <span className="text-xs text-slate-400">{c.track}</span>}
                     {c.organizer && <span className="text-xs text-slate-400">· {c.organizer}</span>}
                   </div>

@@ -3,6 +3,13 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { CONTEST_STATUS_LABELS, daysUntil } from "@/lib/constants";
+import {
+  type NudgeCard as Nudge,
+  PHASE_LABELS,
+  activeNudges,
+  nudgesForPhase,
+  phaseOf,
+} from "@/lib/contest-playbook";
 import { MonthCalendar } from "@/components/MonthCalendar";
 import { GanttView } from "@/components/GanttView";
 import {
@@ -187,6 +194,16 @@ export default function Dashboard() {
     return d !== null && d >= 0 && d <= 7;
   }).length;
 
+  // M30 备赛枢纽：取阶段未终态的活跃比赛（按截止日紧迫），展示最紧急那场的阶段 Nudge 前 3 条
+  const activeContests = allMatches.filter((c) => phaseOf(c.status) !== "closed");
+  const nudgeCountOf = (c: Contest) =>
+    activeNudges(nudgesForPhase(phaseOf(c.status)), c.deliverables).length;
+  const hubContest = activeContests.find((c) => nudgeCountOf(c) > 0) ?? null;
+  const hubNudges: Nudge[] = hubContest
+    ? activeNudges(nudgesForPhase(phaseOf(hubContest.status)), hubContest.deliverables).slice(0, 3)
+    : [];
+  const hubTotal = activeContests.reduce((s, c) => s + nudgeCountOf(c), 0);
+
   const topPrograms = [...connections]
     .sort((a, b) => (b.lastUsedAt ?? "").localeCompare(a.lastUsedAt ?? ""))
     .slice(0, 6);
@@ -232,6 +249,49 @@ export default function Dashboard() {
           <div className="mt-5">
             <MonthCalendar contests={contests} onPickDay={() => {}} />
           </div>
+        </div>
+      </Block>
+
+      {/* 备赛枢纽：按阶段浮现的待办引导，点击直达该比赛工作流页 */}
+      <Block cfg={placed.roadshow}>
+        <div className="card-fluid rounded-xl border bg-white p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-sm font-medium text-slate-600">🧭 备赛枢纽</span>
+            <Link href="/contests" className="text-xs text-blue-600 hover:underline">全部比赛 →</Link>
+          </div>
+          {!hubContest ? (
+            <p className="text-sm text-slate-400">当前没有进行中的比赛待办。去「比赛追踪」登记一场，工作台会按阶段提醒你做哪些产物。</p>
+          ) : (
+            <>
+              <div className="mb-2 flex flex-wrap items-center gap-2 text-xs">
+                <Link href={`/contests/${hubContest.id}`} className="font-medium text-brand hover:underline">
+                  {hubContest.name} →
+                </Link>
+                <span className="rounded bg-brand-soft px-2 py-0.5 text-brand">
+                  {PHASE_LABELS[phaseOf(hubContest.status)]}阶段
+                </span>
+                <span className="text-slate-400">还差 {nudgeCountOf(hubContest)} 项</span>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {hubNudges.map((n) => (
+                  <Link
+                    key={n.taskId}
+                    href={`/contests/${hubContest.id}`}
+                    className="flex items-center gap-2 rounded-lg border border-brand/25 bg-slate-50 px-3 py-2 text-sm transition-colors hover:bg-brand-soft"
+                  >
+                    <span className="text-lg">{n.emoji}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium">{n.label}</span>
+                      <span className="block truncate text-xs text-slate-400">{n.hint}</span>
+                    </span>
+                  </Link>
+                ))}
+              </div>
+              {hubTotal > hubNudges.length && (
+                <p className="mt-2 text-xs text-slate-400">全部活跃比赛合计还有 {hubTotal} 项阶段待办。</p>
+              )}
+            </>
+          )}
         </div>
       </Block>
 

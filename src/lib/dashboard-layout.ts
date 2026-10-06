@@ -2,6 +2,7 @@
 // 权威源=本机浏览器 localStorage（与主题 queetai-theme 同一处），不入库、不碰业务数据（红线①③⑤）。
 export type BlockId =
   | "hero" // 问候 + 时钟 + 内嵌月历（今日枢纽）
+  | "roadshow" // 备赛枢纽（按阶段浮现的 Nudge 待办引导）
   | "scenes" // 我的启动场景
   | "kpi" // KPI 芯片行
   | "contests" // 赛事总览（列表 ↔ 甘特）
@@ -39,6 +40,7 @@ export type FgChoice = "auto" | "dark" | "light" | "brand";
 
 export const BLOCK_LABELS: Record<BlockId, string> = {
   hero: "今日枢纽（问候 · 时钟 · 月历）",
+  roadshow: "备赛枢纽（阶段待办引导）",
   scenes: "我的启动场景",
   kpi: "KPI 芯片行",
   contests: "赛事总览（列表 / 甘特）",
@@ -147,11 +149,12 @@ export function coerceColSpan(rawColSpan: unknown, rawSize: unknown, defSpan: nu
 
 // 各卡默认列宽（对齐旧四档：full→12、half→6），DEFAULT_LAYOUT 与旧存档迁移共用。
 const DEF_SPAN: Record<BlockId, number> = {
-  hero: 12, scenes: 12, kpi: 12, contests: 12, programs: 6, events: 6, projects: 12,
+  hero: 12, roadshow: 12, scenes: 12, kpi: 12, contests: 12, programs: 6, events: 6, projects: 12,
 };
 
 export const DEFAULT_LAYOUT: BlockCfg[] = [
   { id: "hero", colSpan: 12, visible: true, fs: "md", skin: "default", fg: "auto" },
+  { id: "roadshow", colSpan: 12, visible: true, fs: "md", skin: "default", fg: "auto" },
   { id: "scenes", colSpan: 12, visible: true, fs: "md", skin: "default", fg: "auto" },
   { id: "kpi", colSpan: 12, visible: true, fs: "md", skin: "default", fg: "auto" },
   { id: "contests", colSpan: 12, visible: true, fs: "md", skin: "default", fg: "auto" },
