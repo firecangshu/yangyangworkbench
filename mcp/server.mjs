@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * ¹¤×÷Ì¨ MCP Server
- * ¹© Claude / CodeBuddy / Loomy µÈ AI ¹¤¾ß¾­ MCP Ð­Òé¶ÁÈ¡¹¤×÷Ì¨Êý¾Ý¡£
- * Êý¾Ý·ÃÎÊ£ºÖ±½Ó¶Á SQLite£¨node:sqlite£¬ÁãÒÀÀµ£©£¬²»ÒÀÀµ Web ·þÎñÊÇ·ñÔÚÏß¡£
- * °²È«±ß½ç£ºÄ¬ÈÏÖ»¶Á£»add_event ½ö×·¼Ó±¸×¢Á÷Ë®£»°ó¶¨±¾»ú stdio£¬ÎÞÍøÂç¶Ë¿Ú¡£
- * ×¢Òâ£ºSQL ÁÐÃûÊ¹ÓÃÊý¾Ý¿âÕæÊµÁÐÃû£¨Prisma @map ºóµÄ snake_case£©¡£
+ * ï¿½ï¿½ï¿½ï¿½Ì¨ MCP Server
+ * ï¿½ï¿½ Claude / CodeBuddy / Loomy ï¿½ï¿½ AI ï¿½ï¿½ï¿½ß¾ï¿½ MCP Ð­ï¿½ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½Ì¨ï¿½ï¿½ï¿½Ý¡ï¿½
+ * ï¿½ï¿½ï¿½Ý·ï¿½ï¿½Ê£ï¿½Ö±ï¿½Ó¶ï¿½ SQLiteï¿½ï¿½node:sqliteï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Web ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ß¡ï¿½
+ * ï¿½ï¿½È«ï¿½ß½ç£ºÄ¬ï¿½ï¿½Ö»ï¿½ï¿½ï¿½ï¿½add_event ï¿½ï¿½×·ï¿½Ó±ï¿½×¢ï¿½ï¿½Ë®ï¿½ï¿½ï¿½ó¶¨±ï¿½ï¿½ï¿½ stdioï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë¿Ú¡ï¿½
+ * ×¢ï¿½â£ºSQL ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½Êµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Prisma @map ï¿½ï¿½ï¿½ snake_caseï¿½ï¿½ï¿½ï¿½
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -13,6 +13,7 @@ import { z } from "zod";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildContestInputPacket, phaseOf, PHASES } from "../cli/roadshow-core.mjs";
+import { stat, readdir } from "node:fs/promises";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_PATH = path.join(__dirname, "..", "prisma", "dev.db");
@@ -33,9 +34,9 @@ const server = new McpServer({
 server.registerTool(
   "list_projects",
   {
-    description: "ÁÐ³ö¹¤×÷Ì¨ÖÐµÇ¼ÇµÄÈ«²¿ AI ´´×÷ÏîÄ¿£¨Ãû³Æ¡¢Â·¾¶¡¢Àà±ð¡¢×´Ì¬¡¢±êÇ©£©",
+    description: "ï¿½Ð³ï¿½ï¿½ï¿½ï¿½ï¿½Ì¨ï¿½ÐµÇ¼Çµï¿½È«ï¿½ï¿½ AI ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½ï¿½ï¿½ï¿½Æ¡ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½ï¿½ï¿½Ç©ï¿½ï¿½",
     inputSchema: {
-      status: z.string().optional().describe("¿ÉÑ¡£¬°´×´Ì¬¹ýÂË£ºincubating/dev/submitted/maintain/done"),
+      status: z.string().optional().describe("ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½ï¿½Ë£ï¿½incubating/dev/submitted/maintain/done"),
     },
   },
   async ({ status }) => {
@@ -54,16 +55,16 @@ server.registerTool(
 server.registerTool(
   "get_project",
   {
-    description: "°´ id »ñÈ¡µ¥¸öÏîÄ¿µÄÍêÕûµÇ¼ÇÐÅÏ¢",
+    description: "ï¿½ï¿½ id ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¼ï¿½ï¿½ï¿½Ï¢",
     inputSchema: {
-      id: z.number().describe("ÏîÄ¿ id"),
+      id: z.number().describe("ï¿½ï¿½Ä¿ id"),
     },
   },
   async ({ id }) => {
     const db = openDb();
     try {
       const row = db.prepare("SELECT * FROM Project WHERE id = ?").get(id);
-      if (!row) return { content: [{ type: "text", text: JSON.stringify({ error: "Î´ÕÒµ½", id }) }] };
+      if (!row) return { content: [{ type: "text", text: JSON.stringify({ error: "Î´ï¿½Òµï¿½", id }) }] };
       return { content: [{ type: "text", text: JSON.stringify(row, null, 2) }] };
     } finally {
       db.close();
@@ -74,9 +75,9 @@ server.registerTool(
 server.registerTool(
   "list_contests",
   {
-    description: "ÁÐ³ö¹¤×÷Ì¨ÖÐµÇ¼ÇµÄÈ«²¿±ÈÈü£¨º¬½ØÖ¹ÈÕ¡¢×´Ì¬¡¢½»¸¶½ø¶È¡¢¹ØÁªÏîÄ¿£©",
+    description: "ï¿½Ð³ï¿½ï¿½ï¿½ï¿½ï¿½Ì¨ï¿½ÐµÇ¼Çµï¿½È«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¹ï¿½Õ¡ï¿½×´Ì¬ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½",
     inputSchema: {
-      status: z.string().optional().describe("¿ÉÑ¡£¬°´×´Ì¬¹ýÂË£ºresearch/registered/preparing/submitted/won/lost/cancelled"),
+      status: z.string().optional().describe("ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½ï¿½Ë£ï¿½research/registered/preparing/submitted/won/lost/cancelled"),
     },
   },
   async ({ status }) => {
@@ -102,12 +103,12 @@ server.registerTool(
 server.registerTool(
   "add_event",
   {
-    description: "Ïò¹¤×÷Ì¨²Ù×÷Á÷Ë®×·¼ÓÒ»Ìõ±¸×¢ÊÂ¼þ£¨ÓÃÓÚ AI ¹¤¾ß¸É»îºó»ØÌî½øÕ¹£¬Ö»×·¼Ó²»ÐÞ¸Ä£©",
+    description: "ï¿½ï¿½ï¿½ï¿½Ì¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë®×·ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½×¢ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ AI ï¿½ï¿½ï¿½ß¸É»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Õ¹ï¿½ï¿½Ö»×·ï¿½Ó²ï¿½ï¿½Þ¸Ä£ï¿½",
     inputSchema: {
-      entityType: z.string().describe("¶ÔÏóÀàÐÍ£¬Èç project/contest/note"),
-      entityId: z.number().describe("¶ÔÏó id£¬È«¾Ö±¸×¢Ìî 0"),
-      action: z.string().describe("¶¯×÷Ãû£¬Èç progress_note"),
-      note: z.string().describe("±¸×¢ÄÚÈÝ"),
+      entityType: z.string().describe("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í£ï¿½ï¿½ï¿½ project/contest/note"),
+      entityId: z.number().describe("ï¿½ï¿½ï¿½ï¿½ idï¿½ï¿½È«ï¿½Ö±ï¿½×¢ï¿½ï¿½ 0"),
+      action: z.string().describe("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ progress_note"),
+      note: z.string().describe("ï¿½ï¿½×¢ï¿½ï¿½ï¿½ï¿½"),
     },
   },
   async ({ entityType, entityId, action, note }) => {
@@ -128,13 +129,13 @@ server.registerTool(
   "build_roadshow_input",
   {
     description:
-      "ÎªÄ³³¡±ÈÈüÉú³ÉºÚ¿ÍËÉÂ·ÑÝÄ§ÊõÊ¦µÄ S1 ÊäÈë°ü£¨Markdown£©£º»ã×Ü±ÈÈüÐÅÏ¢+¹ØÁªÏîÄ¿ÉÏÏÂÎÄ+±¾½×¶Î´ý°ì²úÎï¡£Éú³É±ÈÈü²ÄÁÏÇ°ÏÈµ÷±¾¹¤¾ßÈ¡ÉÏÏÂÎÄ¡£",
+      "ÎªÄ³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÉºÚ¿ï¿½ï¿½ï¿½Â·ï¿½ï¿½Ä§ï¿½ï¿½Ê¦ï¿½ï¿½ S1 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Markdownï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü±ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢+ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½+ï¿½ï¿½ï¿½×¶Î´ï¿½ï¿½ï¿½ï¿½ï¿½ï¡£ï¿½ï¿½ï¿½É±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½Èµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½Ä¡ï¿½",
     inputSchema: {
-      contestId: z.number().describe("±ÈÈü id"),
+      contestId: z.number().describe("ï¿½ï¿½ï¿½ï¿½ id"),
       stage: z
         .enum(PHASES)
         .optional()
-        .describe("Ä¿±ê½×¶Î£¬È±Ê¡°´±ÈÈü status ×Ô¶¯ÍÆ¶Ï"),
+        .describe("Ä¿ï¿½ï¿½×¶Î£ï¿½È±Ê¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ status ï¿½Ô¶ï¿½ï¿½Æ¶ï¿½"),
     },
   },
   async ({ contestId, stage }) => {
@@ -145,7 +146,7 @@ server.registerTool(
           "SELECT id, name, organizer, track, start_date AS startDate, deadline, result_date AS resultDate, status, notes FROM Contest WHERE id = ?"
         )
         .get(contestId);
-      if (!c) return { content: [{ type: "text", text: JSON.stringify({ error: "Î´ÕÒµ½", contestId }) }] };
+      if (!c) return { content: [{ type: "text", text: JSON.stringify({ error: "Î´ï¿½Òµï¿½", contestId }) }] };
       const projects = db
         .prepare(
           "SELECT p.name, p.path, p.summary, p.tags, p.last_note AS lastNote FROM ContestProject cp JOIN Project p ON p.id = cp.project_id WHERE cp.contest_id = ?"
@@ -153,9 +154,55 @@ server.registerTool(
         .all(contestId);
       const phase = stage ?? phaseOf(c.status);
       if (!PHASES.includes(phase))
-        return { content: [{ type: "text", text: JSON.stringify({ error: `stage ÐëÎª£º${PHASES.join("/")}` }) }] };
+        return { content: [{ type: "text", text: JSON.stringify({ error: `stage ï¿½ï¿½Îªï¿½ï¿½${PHASES.join("/")}` }) }] };
       const packet = buildContestInputPacket(c, projects, phase);
       return { content: [{ type: "text", text: packet }] };
+    } finally {
+      db.close();
+    }
+  }
+);
+
+const EXCLUDED_DIRS = new Set([
+  "System Volume Information", "$RECYCLE.BIN", "node_modules", ".git", ".next",
+  "backups", "credentials", "yangyangworkbench",
+]);
+
+server.registerTool(
+  "sync_projects",
+  {
+    description: "åˆ·æ–°åŒ¹é…ï¼šæ£€æŸ¥å°è´¦ä¸Žç£ç›˜ä¸€è‡´æ€§ã€‚è¿”å›žå¥åº·/ä¸¢å¤±/æ–°å¢žä¸‰ç±»ç»“æžœï¼ˆåªè¯»ï¼Œä¸å†™åº“ï¼‰ã€‚",
+    inputSchema: {},
+  },
+  async () => {
+    const db = openDb();
+    try {
+      const projects = db.prepare("SELECT id, name, path FROM Project").all();
+      const registeredPaths = new Set(projects.map((p) => p.path.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase()));
+      const healthy = [], missing = [];
+      for (const p of projects) {
+        try { await stat(p.path); healthy.push({ id: p.id, name: p.name, path: p.path }); }
+        catch { missing.push({ id: p.id, name: p.name, path: p.path }); }
+      }
+      const newDirs = [];
+      try {
+        const entries = await readdir("E:\\", { withFileTypes: true });
+        for (const e of entries) {
+          if (!e.isDirectory() || EXCLUDED_DIRS.has(e.name) || e.name.startsWith(".")) continue;
+          const fp = `E:\\${e.name}`;
+          if (!registeredPaths.has(fp.replace(/\\/g, "/").toLowerCase())) newDirs.push({ name: e.name, path: fp });
+        }
+      } catch {}
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({
+            scannedAt: new Date().toISOString(), total: projects.length,
+            summary: { healthyCount: healthy.length, missingCount: missing.length, newCount: newDirs.length },
+            healthy, missing, newDirs,
+          }, null, 2),
+        }],
+      };
     } finally {
       db.close();
     }

@@ -20,3 +20,4 @@ Thumbs.db
 # env 与安全工具内部状态
 .env
 .mimosa/
+dev-*.log

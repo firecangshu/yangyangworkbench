@@ -137,7 +137,7 @@ const commands = {
       if (!VALID_PROJECT_STATUS.includes(opts.status)) fail(`status 须为�?{VALID_PROJECT_STATUS.join("/")}`);
       data.status = opts.status;
     }
-    if (Object.keys(data).length === 0) fail("无有效更新字�?);
+    if (Object.keys(data).length === 0) fail("无有效更新字段");
     const updated = await db.$transaction(async (tx) => {
       const before = await tx.project.findUnique({ where: { id: pid } });
       if (!before) fail(`项目 ${pid} 未找到`, 2);
@@ -235,7 +235,7 @@ const commands = {
       if (!VALID_CONTEST_STATUS.includes(opts.status)) fail(`status 须为�?{VALID_CONTEST_STATUS.join("/")}`);
       data.status = opts.status;
     }
-    if (Object.keys(data).length === 0) fail("无有效更新字�?);
+    if (Object.keys(data).length === 0) fail("参数错误");
     const updated = await db.$transaction(async (tx) => {
       const before = await tx.contest.findUnique({ where: { id: cid } });
       if (!before) fail(`比赛 ${cid} 未找到`, 2);
@@ -280,7 +280,7 @@ const commands = {
       data.done = opts.done === "true";
       data.doneAt = data.done ? new Date() : null;
     }
-    if (Object.keys(data).length === 0) fail("无有效更新字�?);
+    if (Object.keys(data).length === 0) fail("参数错误");
     const updated = await db.$transaction(async (tx) => {
       const before = await tx.deliverable.findUnique({ where: { id: did } });
       if (!before) fail(`交付�?${did} 未找到`, 2);
@@ -307,7 +307,7 @@ const commands = {
     const pid = num(opts.project, "--project");
     const contest = await db.contest.findUnique({ where: { id: cid } });
     const project = await db.project.findUnique({ where: { id: pid } });
-    if (!contest || !project) fail("比赛或项目不存在", 2);
+    if (!contest || !project) fail("参数错误");
     const result = await db.$transaction(async (tx) => {
       const exists = await tx.contestProject.findUnique({
         where: { contestId_projectId: { contestId: cid, projectId: pid } },
@@ -319,7 +319,7 @@ const commands = {
       });
       return { dup: false };
     });
-    if (result.dup) fail("已关�?, 3);
+    if (result.dup) fail("参数错误");
     console.log(JSON.stringify({ ok: true, contestId: cid, projectId: pid }, null, 2));
   },
 
@@ -330,7 +330,7 @@ const commands = {
       const link = await tx.contestProject.findUnique({
         where: { contestId_projectId: { contestId: cid, projectId: pid } },
       });
-      if (!link) fail("未关�?, 2);
+      if (!link) fail("参数错误");
       await tx.contestProject.delete({ where: { id: link.id } });
       await logEvent(tx, "contest_project", link.id, "delete", { contestId: cid, projectId: pid }, null);
     });
@@ -389,6 +389,32 @@ const commands = {
       return { created: createdNames, skipped: sop.steps.length - createdNames.length };
     });
     console.log(JSON.stringify({ ok: true, sopName: sop.name, contestName: contest.name, ...result }, null, 2));
+  },
+
+  async "sync-check"() {
+    const { stat, readdir } = await import("fs/promises");
+    const projects = await db.project.findMany();
+    const registeredPaths = new Set(projects.map((p) => p.path.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase()));
+    const healthy = [], missing = [];
+    for (const p of projects) {
+      try { await stat(p.path); healthy.push({ id: p.id, name: p.name, path: p.path }); }
+      catch { missing.push({ id: p.id, name: p.name, path: p.path }); }
+    }
+    const EXCLUDED = new Set(["System Volume Information","$RECYCLE.BIN","node_modules",".git",".next","backups","credentials","yangyangworkbench"]);
+    const newDirs = [];
+    try {
+      const entries = await readdir("E:\\", { withFileTypes: true });
+      for (const e of entries) {
+        if (!e.isDirectory() || EXCLUDED.has(e.name) || e.name.startsWith(".")) continue;
+        const fp = `E:\\${e.name}`;
+        if (!registeredPaths.has(fp.replace(/\\/g, "/").toLowerCase())) newDirs.push({ name: e.name, path: fp });
+      }
+    } catch {}
+    console.log(JSON.stringify({
+      scannedAt: new Date().toISOString(), total: projects.length,
+      summary: { healthyCount: healthy.length, missingCount: missing.length, newCount: newDirs.length },
+      healthy, missing, newDirs,
+    }, null, 2));
   },
 
   async events() {

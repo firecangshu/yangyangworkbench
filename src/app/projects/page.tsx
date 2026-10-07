@@ -32,6 +32,15 @@ const STATUS_COLORS: Record<string, string> = {
   done: "bg-slate-200 text-slate-500",
 };
 
+type SyncReport = {
+  scannedAt: string;
+  total: number;
+  healthy: { id: number; name: string; path: string }[];
+  missing: { id: number; name: string; path: string }[];
+  newDirs: { name: string; path: string }[];
+  summary: { healthyCount: number; missingCount: number; newCount: number };
+};
+
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [form, setForm] = useState(emptyForm);
@@ -40,6 +49,8 @@ export default function ProjectsPage() {
   const [view, setView] = useState<"table" | "board">("table");
   const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [syncReport, setSyncReport] = useState<SyncReport | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const load = useCallback(() => {
     fetch("/api/projects").then((r) => r.json()).then(setProjects);
@@ -83,6 +94,37 @@ export default function ProjectsPage() {
     setBusy(null);
   }
 
+  async function runSync() {
+    setSyncing(true);
+    setSyncReport(null);
+    try {
+      const res = await fetch("/api/projects/sync", { method: "POST" });
+      if (res.ok) setSyncReport(await res.json());
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function applySync() {
+    if (!syncReport) return;
+    const toRegister = syncReport.newDirs.map((d) => d.path);
+    const toMarkDone = syncReport.missing.map((m) => m.id);
+    if (toRegister.length === 0 && toMarkDone.length === 0) { setSyncReport(null); return; }
+    const msg = `确认应用同步？\n` +
+      (toRegister.length > 0 ? `· 登记 ${toRegister.length} 个新目录\n` : "") +
+      (toMarkDone.length > 0 ? `· 标记 ${toMarkDone.length} 个丢失项目为已完结` : "");
+    if (!window.confirm(msg)) return;
+    await fetch("/api/projects/sync", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ register: toRegister, markDone: toMarkDone }),
+    });
+    setSyncReport(null);
+    load();
+  }
+
+  const missingIds = new Set(syncReport?.missing.map((m) => m.id) ?? []);
+
   const shown = filter === "all" ? projects : projects.filter((p) => p.status === filter);
 
   return (
@@ -109,6 +151,13 @@ export default function ProjectsPage() {
               看板
             </button>
           </div>
+          <button
+            onClick={runSync}
+            disabled={syncing}
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          >
+            {syncing ? "扫描中…" : "刷新匹配"}
+          </button>
           <button
             onClick={() => setShowForm((s) => !s)}
             className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
@@ -174,6 +223,54 @@ export default function ProjectsPage() {
         </div>
       )}
 
+      {syncReport && (
+        <div className="card-fluid rounded-xl border bg-white p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="text-sm font-medium">
+              同步报告 · {new Date(syncReport.scannedAt).toLocaleTimeString("zh-CN", { hour12: false })}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={applySync} className="rounded-md bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700">
+                应用变更
+              </button>
+              <button onClick={() => setSyncReport(null)} className="rounded-md border px-3 py-1 text-xs hover:bg-slate-50">
+                关闭
+              </button>
+            </div>
+          </div>
+          <div className="grid gap-3 text-xs sm:grid-cols-3">
+            <div className="rounded-lg bg-emerald-50 p-2">
+              <span className="font-medium text-emerald-700">✓ 健康 {syncReport.summary.healthyCount}</span>
+              <div className="mt-1 text-emerald-600">目录存在，台账正常</div>
+            </div>
+            <div className="rounded-lg bg-amber-50 p-2">
+              <span className="font-medium text-amber-700">⚠ 丢失 {syncReport.summary.missingCount}</span>
+              <div className="mt-1 text-amber-600">目录已不存在于磁盘</div>
+              {syncReport.missing.length > 0 && (
+                <ul className="mt-1 space-y-0.5">
+                  {syncReport.missing.slice(0, 5).map((m) => (
+                    <li key={m.id} className="truncate text-amber-500" title={m.path}>{m.name}</li>
+                  ))}
+                  {syncReport.missing.length > 5 && <li className="text-amber-400">…等 {syncReport.missing.length} 个</li>}
+                </ul>
+              )}
+            </div>
+            <div className="rounded-lg bg-blue-50 p-2">
+              <span className="font-medium text-blue-700">+ 新增 {syncReport.summary.newCount}</span>
+              <div className="mt-1 text-blue-600">磁盘上有，台账未登记</div>
+              {syncReport.newDirs.length > 0 && (
+                <ul className="mt-1 space-y-0.5">
+                  {syncReport.newDirs.slice(0, 5).map((d) => (
+                    <li key={d.path} className="truncate text-blue-500" title={d.path}>{d.name}</li>
+                  ))}
+                  {syncReport.newDirs.length > 5 && <li className="text-blue-400">…等 {syncReport.newDirs.length} 个</li>}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {view === "table" && (
         <>
           <div className="flex gap-1.5">
@@ -206,7 +303,7 @@ export default function ProjectsPage() {
               </thead>
               <tbody className="divide-y">
                 {shown.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50/60">
+                  <tr key={p.id} className={`hover:bg-slate-50/60 ${missingIds.has(p.id) ? "bg-amber-50/50" : ""}`}>
                     <td className="px-4 py-3">
                       <select
                         disabled={busy === p.id}
@@ -220,7 +317,12 @@ export default function ProjectsPage() {
                       </select>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="font-medium">{p.name}</div>
+                      <div className="font-medium">
+                        {p.name}
+                        {missingIds.has(p.id) && (
+                          <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-normal text-amber-700">目录丢失</span>
+                        )}
+                      </div>
                       <div className="mt-0.5 max-w-md truncate text-xs text-slate-400" title={p.path}>
                         {p.path}
                       </div>
