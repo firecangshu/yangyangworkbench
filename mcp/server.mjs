@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
- * ����̨ MCP Server
- * �� Claude / CodeBuddy / Loomy �� AI ���߾� MCP Э���ȡ����̨���ݡ�
- * ���ݷ��ʣ�ֱ�Ӷ� SQLite��node:sqlite������������������ Web �����Ƿ����ߡ�
- * ��ȫ�߽磺Ĭ��ֻ����add_event ��׷�ӱ�ע��ˮ���󶨱��� stdio��������˿ڡ�
- * ע�⣺SQL ����ʹ�����ݿ���ʵ������Prisma @map ��� snake_case����
+ * 工作台 MCP Server
+ * 供 Claude / CodeBuddy / Loomy 等 AI 工具经 MCP 协议读取工作台数据。
+ * 数据访问：直接读 SQLite（node:sqlite，零依赖），不依赖 Web 服务是否在线。
+ * 安全边界：默认只读；add_event 仅追加备注流水；绑定本机 stdio，无网络端口。
+ * 注意：SQL 列名使用数据库真实列名（Prisma @map 后的 snake_case）。
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -34,9 +34,9 @@ const server = new McpServer({
 server.registerTool(
   "list_projects",
   {
-    description: "�г�����̨�еǼǵ�ȫ�� AI ������Ŀ�����ơ�·�������״̬����ǩ��",
+    description: "列出工作台中登记的全部 AI 创作项目（名称、路径、类别、状态、标签）",
     inputSchema: {
-      status: z.string().optional().describe("��ѡ����״̬���ˣ�incubating/dev/submitted/maintain/done"),
+      status: z.string().optional().describe("可选，按状态过滤：incubating/dev/submitted/maintain/done"),
     },
   },
   async ({ status }) => {
@@ -55,16 +55,16 @@ server.registerTool(
 server.registerTool(
   "get_project",
   {
-    description: "�� id ��ȡ������Ŀ�������Ǽ���Ϣ",
+    description: "按 id 获取单个项目的完整登记信息",
     inputSchema: {
-      id: z.number().describe("��Ŀ id"),
+      id: z.number().describe("项目 id"),
     },
   },
   async ({ id }) => {
     const db = openDb();
     try {
       const row = db.prepare("SELECT * FROM Project WHERE id = ?").get(id);
-      if (!row) return { content: [{ type: "text", text: JSON.stringify({ error: "δ�ҵ�", id }) }] };
+      if (!row) return { content: [{ type: "text", text: JSON.stringify({ error: "未找到", id }) }] };
       return { content: [{ type: "text", text: JSON.stringify(row, null, 2) }] };
     } finally {
       db.close();
@@ -75,9 +75,9 @@ server.registerTool(
 server.registerTool(
   "list_contests",
   {
-    description: "�г�����̨�еǼǵ�ȫ������������ֹ�ա�״̬���������ȡ�������Ŀ��",
+    description: "列出工作台中登记的全部比赛（含截止日、状态、交付进度、关联项目）",
     inputSchema: {
-      status: z.string().optional().describe("��ѡ����״̬���ˣ�research/registered/preparing/submitted/won/lost/cancelled"),
+      status: z.string().optional().describe("可选，按状态过滤：research/registered/preparing/submitted/won/lost/cancelled"),
     },
   },
   async ({ status }) => {
@@ -103,12 +103,12 @@ server.registerTool(
 server.registerTool(
   "add_event",
   {
-    description: "����̨������ˮ׷��һ����ע�¼������� AI ���߸ɻ������չ��ֻ׷�Ӳ��޸ģ�",
+    description: "向工作台操作流水追加一条备注事件（用于 AI 工具干活后回填进展，只追加不修改）",
     inputSchema: {
-      entityType: z.string().describe("�������ͣ��� project/contest/note"),
-      entityId: z.number().describe("���� id��ȫ�ֱ�ע�� 0"),
-      action: z.string().describe("���������� progress_note"),
-      note: z.string().describe("��ע����"),
+      entityType: z.string().describe("对象类型，如 project/contest/note"),
+      entityId: z.number().describe("对象 id，全局备注填 0"),
+      action: z.string().describe("动作名，如 progress_note"),
+      note: z.string().describe("备注内容"),
     },
   },
   async ({ entityType, entityId, action, note }) => {
@@ -129,13 +129,13 @@ server.registerTool(
   "build_roadshow_input",
   {
     description:
-      "Ϊĳ���������ɺڿ���·��ħ��ʦ�� S1 �������Markdown�������ܱ�����Ϣ+������Ŀ������+���׶δ��������ɱ�������ǰ�ȵ�������ȡ�����ġ�",
+      "为某场比赛生成黑客松路演魔术师的 S1 输入包（Markdown）：汇总比赛信息+关联项目上下文+本阶段待办产物。生成比赛材料前先调本工具取上下文。",
     inputSchema: {
-      contestId: z.number().describe("���� id"),
+      contestId: z.number().describe("比赛 id"),
       stage: z
         .enum(PHASES)
         .optional()
-        .describe("Ŀ��׶Σ�ȱʡ������ status �Զ��ƶ�"),
+        .describe("目标阶段，缺省按比赛 status 自动推断"),
     },
   },
   async ({ contestId, stage }) => {
@@ -146,7 +146,7 @@ server.registerTool(
           "SELECT id, name, organizer, track, start_date AS startDate, deadline, result_date AS resultDate, status, notes FROM Contest WHERE id = ?"
         )
         .get(contestId);
-      if (!c) return { content: [{ type: "text", text: JSON.stringify({ error: "δ�ҵ�", contestId }) }] };
+      if (!c) return { content: [{ type: "text", text: JSON.stringify({ error: "未找到", contestId }) }] };
       const projects = db
         .prepare(
           "SELECT p.name, p.path, p.summary, p.tags, p.last_note AS lastNote FROM ContestProject cp JOIN Project p ON p.id = cp.project_id WHERE cp.contest_id = ?"
@@ -154,7 +154,7 @@ server.registerTool(
         .all(contestId);
       const phase = stage ?? phaseOf(c.status);
       if (!PHASES.includes(phase))
-        return { content: [{ type: "text", text: JSON.stringify({ error: `stage ��Ϊ��${PHASES.join("/")}` }) }] };
+        return { content: [{ type: "text", text: JSON.stringify({ error: `stage 须为：${PHASES.join("/")}` }) }] };
       const packet = buildContestInputPacket(c, projects, phase);
       return { content: [{ type: "text", text: packet }] };
     } finally {

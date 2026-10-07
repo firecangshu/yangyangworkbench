@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 /**
- * 工作台通用 CLI —�?任何智能体可接管（SKILL.md 通道 D�? *
+ * 工作台通用 CLI —— 任何智能体可接管（SKILL.md 通道 D）
+ *
  * 用法：node cli/workbench.mjs <命令> [参数]
  * 设计约束（与 Web API 同源红线）：
- *   1. 只动台账，永不触碰磁盘文�? *   2. 凭据不入库（connections 只读，无任何密码字段�? *   3. 所有写操作在同一事务内追�?append-only 事件流水（动作名�?Web API 一致）
- *   4. 截止日等无把握信息留�?= 待定，不脑补
- * 输出统一�?JSON（UTF-8）；出错输出 { "error": ... } 并以退出码 1 结束�? */
+ *   1. 只动台账，永不触碰磁盘文件
+ *   2. 凭据不入库（connections 只读，无任何密码字段）
+ *   3. 所有写操作在同一事务内追加 append-only 事件流水（动作名与 Web API 一致）
+ *   4. 截止日等无把握信息留空 = 待定，不脑补
+ * 输出统一为 JSON（UTF-8）；出错输出 { "error": ... } 并以退出码 1 结束。
+ */
 import { PrismaClient } from "@prisma/client";
 import { buildContestInputPacket, phaseOf, PHASES } from "./roadshow-core.mjs";
 
@@ -45,7 +49,7 @@ function fail(msg, code = 1) {
   process.exit(code);
 }
 
-/* ---------- 参数解析：首个非 --key 词为命令，其余收�?opts ---------- */
+/* ---------- 参数解析：首个非 --key 词为命令，其余收进 opts ---------- */
 const argv = process.argv.slice(2);
 const command = argv.find((a) => !a.startsWith("--")) ?? "help";
 const opts = {};
@@ -74,21 +78,26 @@ function pickStrings(source, keys) {
 /* ---------- 命令实现 ---------- */
 const commands = {
   help() {
-    console.log(`工作台通用 CLI（通道 D）—�?项目/比赛台账接管工具
+    console.log(`工作台通用 CLI（通道 D）—— 项目/比赛台账接管工具
 
-项目�? list-projects [--status s] | get-project <id>
+项目：  list-projects [--status s] | get-project <id>
         add-project --name X --path Y [--category c] [--status s] [--tags t] [--summary s]
         update-project <id> [--name|--path|--category|--status|--tags|--summary|--last-note 值]
-        delete-project <id>            # 只删台账行，磁盘文件永不�?比赛�? list-contests [--status s] | get-contest <id>
+        delete-project <id>            # 只删台账行，磁盘文件永不动
+比赛：  list-contests [--status s] | get-contest <id>
         add-contest --name X [--organizer o] [--track t] [--start-date d] [--deadline d] [--result-date d] [--status s] [--notes n]
         update-contest <id> [--status|--deadline|--result-date|--name|--organizer|--track|--start-date|--submit-link|--notes 值]
         delete-contest <id>
 交付物：add-deliverable <contestId> --name X
         set-deliverable <id> [--done true|false] [--name X]     # 勾选自动记 doneAt
         delete-deliverable <id>
-关联�? link <contestId> --project <projectId> | unlink <contestId> --project <projectId>
-其他�? connections   # 工具连接清单（只读，凭据只有引用路径�?        events [--limit N]
-        list-sops     # SOP 流程模板�?        apply-sop <contestId> --sop <templateId>   # 套用模板生成交付物（同名跳过�?比赛材料：roadshow-input <contestId> [--stage phase]   # 生成魔术�?S1 输入包（--stage 缺省�?status 推断�?状态枚举：项目 ${VALID_PROJECT_STATUS.join("/")}
+关联：  link <contestId> --project <projectId> | unlink <contestId> --project <projectId>
+其他：  connections   # 工具连接清单（只读，凭据只有引用路径）
+        events [--limit N]
+        list-sops     # SOP 流程模板库
+        apply-sop <contestId> --sop <templateId>   # 套用模板生成交付物（同名跳过）
+比赛材料：roadshow-input <contestId> [--stage phase]   # 生成魔术师 S1 输入包（--stage 缺省按 status 推断）
+状态枚举：项目 ${VALID_PROJECT_STATUS.join("/")}
           比赛 ${VALID_CONTEST_STATUS.join("/")}
 所有输出为 JSON；写操作自动记入事件流水（events 可查）。`);
   },
@@ -107,14 +116,14 @@ const commands = {
 
   async "add-project"() {
     const base = pickStrings(opts, ["name", "path"]);
-    if (!base.name || !base.path) fail("--name �?--path 必填");
+    if (!base.name || !base.path) fail("--name 与 --path 必填");
     const data = { ...base, category: "other", status: "incubating", summary: "", tags: "", lastNote: "" };
     if (opts.category) {
-      if (!VALID_PROJECT_CATEGORY.includes(opts.category)) fail(`category 须为�?{VALID_PROJECT_CATEGORY.join("/")}`);
+      if (!VALID_PROJECT_CATEGORY.includes(opts.category)) fail(`category 须为：${VALID_PROJECT_CATEGORY.join("/")}`);
       data.category = opts.category;
     }
     if (opts.status) {
-      if (!VALID_PROJECT_STATUS.includes(opts.status)) fail(`status 须为�?{VALID_PROJECT_STATUS.join("/")}`);
+      if (!VALID_PROJECT_STATUS.includes(opts.status)) fail(`status 须为：${VALID_PROJECT_STATUS.join("/")}`);
       data.status = opts.status;
     }
     for (const k of ["tags", "summary"]) if (opts[k]) data[k] = opts[k];
@@ -130,11 +139,11 @@ const commands = {
     const pid = num(id, "项目 id");
     const data = pickStrings(opts, ["name", "path", "tags", "summary", "lastNote"]);
     if (opts.category) {
-      if (!VALID_PROJECT_CATEGORY.includes(opts.category)) fail(`category 须为�?{VALID_PROJECT_CATEGORY.join("/")}`);
+      if (!VALID_PROJECT_CATEGORY.includes(opts.category)) fail(`category 须为：${VALID_PROJECT_CATEGORY.join("/")}`);
       data.category = opts.category;
     }
     if (opts.status) {
-      if (!VALID_PROJECT_STATUS.includes(opts.status)) fail(`status 须为�?{VALID_PROJECT_STATUS.join("/")}`);
+      if (!VALID_PROJECT_STATUS.includes(opts.status)) fail(`status 须为：${VALID_PROJECT_STATUS.join("/")}`);
       data.status = opts.status;
     }
     if (Object.keys(data).length === 0) fail("无有效更新字段");
@@ -198,7 +207,7 @@ const commands = {
     if (!c) fail(`比赛 ${id} 未找到`, 2);
     let phase = phaseOf(c.status);
     if (opts.stage) {
-      if (!PHASES.includes(opts.stage)) fail(`--stage 须为�?{PHASES.join("/")}`);
+      if (!PHASES.includes(opts.stage)) fail(`--stage 须为：${PHASES.join("/")}`);
       phase = opts.stage;
     }
     const projects = c.links.map((l) => ({
@@ -217,7 +226,7 @@ const commands = {
       if (opts[k]) data[k] = opts[k];
     }
     if (opts.status) {
-      if (!VALID_CONTEST_STATUS.includes(opts.status)) fail(`status 须为�?{VALID_CONTEST_STATUS.join("/")}`);
+      if (!VALID_CONTEST_STATUS.includes(opts.status)) fail(`status 须为：${VALID_CONTEST_STATUS.join("/")}`);
       data.status = opts.status;
     }
     const created = await db.$transaction(async (tx) => {
@@ -232,7 +241,7 @@ const commands = {
     const cid = num(id, "比赛 id");
     const data = pickStrings(opts, ["name", "organizer", "track", "startDate", "deadline", "resultDate", "submitLink", "notes"]);
     if (opts.status) {
-      if (!VALID_CONTEST_STATUS.includes(opts.status)) fail(`status 须为�?{VALID_CONTEST_STATUS.join("/")}`);
+      if (!VALID_CONTEST_STATUS.includes(opts.status)) fail(`status 须为：${VALID_CONTEST_STATUS.join("/")}`);
       data.status = opts.status;
     }
     if (Object.keys(data).length === 0) fail("参数错误");
@@ -272,18 +281,18 @@ const commands = {
   },
 
   async "set-deliverable"(id) {
-    const did = num(id, "交付�?id");
+    const did = num(id, "交付物 id");
     const data = {};
     if (opts.name) data.name = opts.name;
     if (opts.done !== undefined) {
-      if (!["true", "false"].includes(opts.done)) fail("--done 取�?true|false");
+      if (!["true", "false"].includes(opts.done)) fail("--done 取值 true|false");
       data.done = opts.done === "true";
       data.doneAt = data.done ? new Date() : null;
     }
     if (Object.keys(data).length === 0) fail("参数错误");
     const updated = await db.$transaction(async (tx) => {
       const before = await tx.deliverable.findUnique({ where: { id: did } });
-      if (!before) fail(`交付�?${did} 未找到`, 2);
+      if (!before) fail(`交付物 ${did} 未找到`, 2);
       const d = await tx.deliverable.update({ where: { id: did }, data });
       await logEvent(tx, "deliverable", did, "update", deliverableJSON(before), deliverableJSON(d));
       return d;
@@ -292,10 +301,10 @@ const commands = {
   },
 
   async "delete-deliverable"(id) {
-    const did = num(id, "交付�?id");
+    const did = num(id, "交付物 id");
     await db.$transaction(async (tx) => {
       const before = await tx.deliverable.findUnique({ where: { id: did } });
-      if (!before) fail(`交付�?${did} 未找到`, 2);
+      if (!before) fail(`交付物 ${did} 未找到`, 2);
       await tx.deliverable.delete({ where: { id: did } });
       await logEvent(tx, "deliverable", did, "delete", deliverableJSON(before), null);
     });
@@ -426,7 +435,7 @@ const commands = {
 
 const handler = commands[command];
 if (!handler) {
-  fail(`未知命令�?{command}（node cli/workbench.mjs help 查看命令表）`);
+  fail(`未知命令：${command}（node cli/workbench.mjs help 查看命令表）`);
 }
 try {
   await handler(command === "help" ? undefined : argv[argv.indexOf(command) + 1]);
