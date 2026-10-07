@@ -10,6 +10,7 @@ export async function GET() {
       model: p.model,
       note: p.note,
       keyFile: p.keyFile,
+      vision: p.vision === true,
       hasKey: (await readKey(p.keyFile)) !== null,
     }))
   );

@@ -11,6 +11,8 @@ export type AssistantProvider = {
   baseUrl: string;
   keyFile: string;
   note: string;
+  /** 支持图片输入（识图模型）：只有这类模型能接收附件图片 */
+  vision?: boolean;
 };
 
 export const ASSISTANT_PROVIDERS: AssistantProvider[] = [
@@ -37,6 +39,15 @@ export const ASSISTANT_PROVIDERS: AssistantProvider[] = [
     baseUrl: "https://api.moonshot.cn/v1",
     keyFile: "credentials/moonshot-api-key.txt",
     note: "platform.moonshot.cn 申请 · 送代金券",
+  },
+  {
+    id: "glm4v",
+    label: "智谱 GLM-4V-Flash（免费·识图）",
+    model: "glm-4v-flash",
+    baseUrl: "https://open.bigmodel.cn/api/paas/v4",
+    keyFile: "credentials/glm-api-key.txt",
+    note: "上传截图/海报让 AI 看图时用这家 · 与 GLM 共用同一个 key",
+    vision: true,
   },
 ];
 

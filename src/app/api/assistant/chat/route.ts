@@ -126,7 +126,25 @@ async function runTool(name: string, args: Record<string, unknown>) {
   return { error: `未知工具 ${name}` };
 }
 
-type ChatMessage = { role: string; content: string; [k: string]: unknown };
+type ChatMessage = { role: string; content: unknown; images?: { name?: string; dataUrl?: string }[]; [k: string]: unknown };
+
+/** 本轮是否带了附件图片（只认 data: 开头的 base64 URL，不接收外链） */
+function hasImages(msgs: ChatMessage[]) {
+  return msgs.some((m) => m.role === "user" && (m.images ?? []).some((x) => String(x?.dataUrl ?? "").startsWith("data:")));
+}
+
+/** 带图的用户消息转 OpenAI 兼容的多模态 content 数组，其余消息原样 */
+function toApiMessage(m: ChatMessage): ChatMessage {
+  const urls = (m.images ?? []).map((x) => String(x?.dataUrl ?? "")).filter((u) => u.startsWith("data:"));
+  if (m.role !== "user" || urls.length === 0) return { role: m.role, content: m.content };
+  return {
+    role: "user",
+    content: [
+      { type: "text", text: String(m.content ?? "") },
+      ...urls.map((url) => ({ type: "image_url", image_url: { url } })),
+    ],
+  };
+}
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
@@ -135,6 +153,19 @@ export async function POST(req: Request) {
   const history = Array.isArray(body.messages) ? (body.messages as ChatMessage[]).slice(-20) : [];
   const userMsgs = history.filter((m) => m.role === "user");
   if (userMsgs.length === 0) return NextResponse.json({ error: "没有用户消息" }, { status: 400 });
+
+  // 附件文本已由前端拼进 content；图片只有识图模型能吃，否则明确告知去哪切（不默默丢图）
+  const withImages = hasImages(history);
+  if (withImages && !provider.vision) {
+    return NextResponse.json({
+      degraded: true, provider: provider.id,
+      reply:
+        `${provider.label} 不支持图片识别。\n` +
+        `请在上方下拉切到「智谱 GLM-4V-Flash（免费·识图）」后重发（与 GLM 共用同一个 key），或把图里的关键信息用文字描述给我。\n` +
+        `文本附件不受影响，照常分析。`,
+      tools: [],
+    });
+  }
 
   const key = await readKey(provider.keyFile);
   if (!key) {
@@ -149,15 +180,19 @@ export async function POST(req: Request) {
     });
   }
 
-  const messages: ChatMessage[] = [{ role: "system", content: SYSTEM_PROMPT }, ...history];
+  const messages: ChatMessage[] = [
+    { role: "system", content: SYSTEM_PROMPT + (withImages ? "\n用户本轮附了图片：先如实读图（图上写什么就是什么），没写清的日期/链接一律标待定，绝不猜。" : "") },
+    ...history.map(toApiMessage),
+  ];
   const toolsCalled: { name: string; args: unknown }[] = [];
   let integration: IntegrationPlan | null = null;
 
-  const call = async (payload: Record<string, unknown>) => {
+  const call = async () => {
     const res = await fetch(`${provider.baseUrl}/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model: provider.model, messages, tool_choice: "auto", ...payload }),
+      // 识图模型不走 function calling：带图轮次不塞 tools，避免上游 400
+      body: JSON.stringify({ model: provider.model, messages, ...(withImages ? {} : { tools: TOOLS, tool_choice: "auto" }) }),
       signal: AbortSignal.timeout(60_000),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status} ${await res.text().catch(() => "")}`.slice(0, 200));
@@ -166,7 +201,7 @@ export async function POST(req: Request) {
 
   let data;
   try {
-    data = await call({ tools: TOOLS });
+    data = await call();
   } catch (e) {
     return NextResponse.json({
       degraded: true, provider: provider.id,
@@ -200,7 +235,7 @@ export async function POST(req: Request) {
       messages.push({ role: "tool", tool_call_id: tc.id, content: JSON.stringify(result) });
     }
     try {
-      data = await call({ tools: TOOLS });
+      data = await call();
     } catch (e) {
       return NextResponse.json({
         degraded: true, provider: provider.id,

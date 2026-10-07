@@ -3,10 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { IntegrationPlan } from "@/lib/contest-integration";
 
-type Provider = { id: string; label: string; model: string; note: string; keyFile: string; hasKey: boolean };
+type Provider = { id: string; label: string; model: string; note: string; keyFile: string; hasKey: boolean; vision?: boolean };
 type GenMeta = { contestId: number; deliverableName: string; stage: string };
 type Integrated = { contestId: number; action: string; delivAdded: number; noteAdded: number };
-type Msg = { role: "user" | "assistant"; content: string; tools?: { name: string; args: unknown }[]; degraded?: boolean; meta?: GenMeta; registered?: boolean; integration?: IntegrationPlan; integrated?: Integrated };
+type Attachment = { name: string; type: "text" | "image"; content: string; dataUrl?: string; size: number };
+// 发给 /api/assistant/chat 的线格式：本轮用户消息额外携带附件图片（服务端拼成多模态 content）
+type WireMsg = { role: string; content: string; images?: { name: string; dataUrl?: string }[] };
+type Msg = { role: "user" | "assistant"; content: string; tools?: { name: string; args: unknown }[]; degraded?: boolean; meta?: GenMeta; registered?: boolean; integration?: IntegrationPlan; integrated?: Integrated; attachments?: Attachment[] };
 
 const QUICK = [
   "现在工作台是什么状态？有哪些比赛快到期了？",
@@ -14,6 +17,10 @@ const QUICK = [
   "融入新比赛：我把官网资讯粘贴给你（下条消息发资料）",
   "最近我该推进哪件事？",
 ];
+
+// 附件大小可读：不足 1KB 不能显示成「0KB」
+const fmtSize = (n: number) =>
+  n < 1024 ? `${n}B` : n < 1024 * 1024 ? `${(n / 1024).toFixed(1)}KB` : `${(n / 1024 / 1024).toFixed(1)}MB`;
 
 // 全站常驻的 AI 助手（M17 综合布局版）：作为工作区一栏，而非悬浮遮罩。
 // 宽屏(lg+)固定在右侧成独立一栏（sticky 全高，内容再长也并排不重叠）；
@@ -24,6 +31,9 @@ export function AssistantDock({ width = 360 }: { width?: number }) {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const asideRef = useRef<HTMLElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -64,21 +74,69 @@ export function AssistantDock({ width = 360 }: { width?: number }) {
     return () => window.removeEventListener("assistant-generate", onGenerate);
   }, []);
 
+  async function pickFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    const next: Attachment[] = [];
+    for (const f of Array.from(files).slice(0, 3)) {
+      try {
+        const fd = new FormData();
+        fd.append("file", f);
+        const res = await fetch("/api/assistant/upload", { method: "POST", body: fd });
+        const j = await res.json();
+        if (res.ok && j.ok) {
+          next.push({ name: j.name, type: j.type, content: j.content, dataUrl: j.dataUrl, size: j.size });
+        } else {
+          setMsgs((prev) => [...prev, { role: "assistant", content: `⚠ 附件「${f.name}」读取失败：${j.error ?? res.status}`, degraded: true }]);
+        }
+      } catch (e) {
+        setMsgs((prev) => [...prev, { role: "assistant", content: `⚠ 附件「${f.name}」上传异常：${String(e)}`, degraded: true }]);
+      }
+    }
+    if (next.length > 0) setAttachments((prev) => [...prev, ...next]);
+    // 图片附件只有识图模型能吃：当前模型不支持时，有识图 key 就自动切过去，没有就明确提示（degraded 不进对话历史）
+    if (next.some((a) => a.type === "image")) {
+      const cur = providers.find((p) => p.id === provider);
+      if (!cur?.vision) {
+        const alt = providers.find((p) => p.vision && p.hasKey);
+        if (alt) {
+          setProvider(alt.id);
+          setMsgs((prev) => [...prev, { role: "assistant", content: `🖼 图片附件需要识图模型，已自动切换到「${alt.label}」（该模型不走工具调用）`, degraded: true }]);
+        } else {
+          setMsgs((prev) => [...prev, { role: "assistant", content: "⚠ 当前模型不识别图片。文本附件照常分析；图片请下拉切换到带「识图」的模型后再发送。", degraded: true }]);
+        }
+      }
+    }
+    setUploading(false);
+    inputRef.current?.focus();
+  }
+
   async function send(text: string, meta?: GenMeta) {
     const q = text.trim();
-    if (!q || busy) return;
+    const atts = attachments;
+    if ((!q && atts.length === 0) || busy) return;
     setBusy(true);
     setInput("");
-    const next: Msg[] = [...msgs, { role: "user", content: q }];
+    setAttachments([]);
+    // 用户消息展示：文本 + 附件摘要
+    const attSummary = atts.map((a) => `📎 ${a.name}（${a.type === "image" ? "图片" : "文本"} ${fmtSize(a.size)}）`).join("\n");
+    const display = (atts.length ? attSummary + (q ? "\n" : "") : "") + q;
+    const next: Msg[] = [...msgs, { role: "user", content: display, attachments: atts }];
     setMsgs(next);
+    // 附件内容拼入发给 LLM 的文本：文本文件内联，图片走 image_url（仅识图模型）
+    const attText = atts.filter((a) => a.type === "text").map((a) => `【附件：${a.name}】\n${a.content}\n【附件结束】`).join("\n\n");
+    const llmText = (attText ? attText + "\n\n" : "") + (q || "请分析附件内容");
+    const imageAtts = atts.filter((a) => a.type === "image").map((a) => ({ name: a.name, dataUrl: a.dataUrl }));
+    // 历史过滤掉降级提示后，最后一条必定是刚 push 的本轮用户消息
+    const hist: WireMsg[] = next.filter((m) => !m.degraded).map((m) => ({ role: m.role, content: m.content }));
+    if (hist.length > 0 && hist[hist.length - 1].role === "user") {
+      hist[hist.length - 1] = { role: "user", content: llmText, images: imageAtts };
+    }
     try {
       const res = await fetch("/api/assistant/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider,
-          messages: next.filter((m) => !m.degraded).map((m) => ({ role: m.role, content: m.content })),
-        }),
+        body: JSON.stringify({ provider, messages: hist }),
       });
       const j = await res.json();
       setMsgs([...next, {
@@ -272,23 +330,51 @@ export function AssistantDock({ width = 360 }: { width?: number }) {
       </div>
 
       {/* 输入区 */}
-      <div className="flex gap-1.5 border-t bg-slate-50 p-2.5">
-        <input
-          ref={inputRef}
-          className="min-w-0 flex-1 rounded-lg border bg-white px-3 py-2 text-xs"
-          placeholder={busy ? "回复中…" : "问工作台的事，如「帮我登记比赛：XXX 大赛，7月20日截止」"}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }}
-        />
-        <button onClick={() => send(input)} disabled={busy || !input.trim()}
-          className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-40">
-          发送
-        </button>
+      <div className="border-t bg-slate-50 p-2.5">
+        {attachments.length > 0 && (
+          <div className="mb-1.5 flex flex-wrap gap-1">
+            {attachments.map((a, i) => (
+              <span key={i} className="flex items-center gap-1 rounded-full border bg-white px-2 py-0.5 text-xs text-slate-600">
+                {a.type === "image" ? "🖼" : "📄"} {a.name.length > 14 ? a.name.slice(0, 12) + "…" : a.name}
+                <button onClick={() => setAttachments((prev) => prev.filter((_, k) => k !== i))} className="text-slate-400 hover:text-red-500">×</button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="flex gap-1.5">
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".txt,.md,.csv,.json,.tsv,.log,.yaml,.yml,.xml,.html,.png,.jpg,.jpeg,.gif,.webp"
+            multiple
+            className="hidden"
+            onChange={(e) => { pickFiles(e.target.files); e.target.value = ""; }}
+          />
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={busy || uploading}
+            title="上传文件/图片供 AI 分析"
+            className="rounded-lg border bg-white px-2.5 py-2 text-xs text-slate-600 hover:bg-slate-100 disabled:opacity-40"
+          >
+            {uploading ? "读取中…" : "📎"}
+          </button>
+          <input
+            ref={inputRef}
+            className="min-w-0 flex-1 rounded-lg border bg-white px-3 py-2 text-xs"
+            placeholder={busy ? "回复中…" : "问工作台的事，或点 📎 上传文件/截图让 AI 分析"}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }}
+          />
+          <button onClick={() => send(input)} disabled={busy || (!input.trim() && attachments.length === 0)}
+            className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-40">
+            发送
+          </button>
         {msgs.length > 0 && (
           <button onClick={() => setMsgs([])} title="清空对话（不影响台账）"
             className="rounded-lg border bg-white px-2 py-2 text-xs text-slate-500 hover:bg-slate-100">🧹</button>
         )}
+        </div>
       </div>
     </aside>
   );
