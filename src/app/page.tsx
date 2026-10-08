@@ -56,7 +56,7 @@ const ET_LABEL: Record<string, string> = {
   launch_scene: "启动场景", note: "备注/提醒",
 };
 const ACT_LABEL: Record<string, string> = {
-  create: "创建", update: "更新", delete: "删除", launch: "启动",
+  create: "创建", update: "更新", delete: "删除", launch: "启动", shortcut: "桌面门牌",
   apply_sop: "套用 SOP", credential_open: "定位凭据", import_jubao: "聚宝盆导入",
   fire: "一键启动",
 };

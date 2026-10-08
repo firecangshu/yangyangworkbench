@@ -24,7 +24,7 @@ export async function POST(
 
   const dir = extractProfileDir(account.launchCommand);
   if (!dir) {
-    return NextResponse.json({ error: "这个号的命令里没有独立登录空间目录（手写的），没目录可开" }, { status: 400 });
+    return NextResponse.json({ error: "这个号没有独立登录空间目录（它要么直接用本机现成登录态，要么命令是手写的），没目录可开" }, { status: 400 });
   }
   if (!isUnderRoot(dir, profileRoot())) {
     return NextResponse.json({ error: `目录 ${dir} 不在工作台登录空间根下，为安全没有打开` }, { status: 400 });

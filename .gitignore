@@ -14,6 +14,8 @@ dev-err.log
 scripts/.launch-queue
 scripts/.launch-queue.lock
 scripts/.deadline-state.json
+# 启动该号时 cwd 正在仓库里，TRAE/Electron 会把自己日志写到这儿，不是本仓产物
+debug.log
 *.tsbuildinfo
 Thumbs.db
 

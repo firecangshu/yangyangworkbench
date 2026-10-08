@@ -61,7 +61,7 @@ export async function GET(
     return NextResponse.json({
       verifiable: false,
       state: "none",
-      reason: "这个号的命令里没有独立登录空间参数（手写的），没法自检",
+      reason: "这个号的命令里没有独立登录空间，用的就是本机现成登录态（或是手写命令），自检没有对象",
     });
   }
   if (!existsSync(dir)) {

@@ -19,6 +19,7 @@ const ACTION_LABELS: Record<string, string> = {
   open_dir: "打开目录",
   fire: "一键启动",
   launch: "启动",
+  shortcut: "桌面门牌",
 };
 
 function tryParse(s: string): Record<string, unknown> | null {

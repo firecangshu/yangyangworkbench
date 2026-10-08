@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { existsSync, mkdirSync, rmSync } from "fs";
 import { prisma } from "@/lib/db";
 import { logEvent } from "@/lib/events";
-import { buildAccountLaunch, extractProfileDir, isUnderRoot, profileRoot } from "@/lib/launch-profile";
+import { buildAccountLaunch, detectLoginMode, extractProfileDir, isUnderRoot, profileRoot, type LoginMode } from "@/lib/launch-profile";
 
 export async function PATCH(
   req: Request,
@@ -18,8 +18,11 @@ export async function PATCH(
   if (typeof body.launchCommand === "string") data.launchCommand = body.launchCommand;
   if (typeof body.notes === "string") data.notes = body.notes;
 
-  /* M36：卡片换了程序路径或入口网址后，可以重新生成这个号的登录空间命令，不用手打 */
+  /* M36：卡片换了程序路径或入口网址后，可以重新生成这个号的启动命令，不用手打
+   * M36.3：重建默认沿用这个号原本的登录态来源（复用就是复用、隔离就是隔离），
+   * 否则你一点 ↻ 就把一个登好的号踢成空的，那比不重建还坑。 */
   let profileDir = "";
+  let mode: LoginMode = "reuse";
   if (body.regen === true) {
     const acc = await prisma.connectionAccount.findUnique({ where: { id: Number(id) } });
     if (!acc) return NextResponse.json({ error: "未找到" }, { status: 404 });
@@ -29,16 +32,20 @@ export async function PATCH(
       where: { connectionId: conn.id, id: { not: acc.id } },
       select: { label: true },
     });
+    const wantMode: LoginMode =
+      body.mode === "reuse" || body.mode === "isolated" ? body.mode : detectLoginMode(acc.launchCommand);
     const built = buildAccountLaunch({
       card: { toolName: conn.toolName, launchCommand: conn.launchCommand, entryUrl: conn.entryUrl },
       label: data.label ?? acc.label,
       existingLabels: siblings.map((s) => s.label),
+      mode: wantMode,
     });
     if (!built.ok) return NextResponse.json({ error: built.reason }, { status: 400 });
     data.launchCommand = built.cmd;
     profileDir = built.profileDir;
+    mode = built.mode;
     try {
-      mkdirSync(built.profileDir, { recursive: true });
+      if (profileDir) mkdirSync(profileDir, { recursive: true });
     } catch {
       /* 目录建不出来不阻塞保存，启动时浏览器会自己建 */
     }
@@ -58,7 +65,7 @@ export async function PATCH(
     return a;
   });
   if (!updated) return NextResponse.json({ error: "未找到" }, { status: 404 });
-  return NextResponse.json({ ...updated, profileDir });
+  return NextResponse.json({ ...updated, profileDir, mode });
 }
 
 /*
@@ -87,7 +94,7 @@ export async function DELETE(
   if (purge) {
     const dir = extractProfileDir(account.launchCommand);
     const root = profileRoot();
-    if (!dir) purgeSkipped = "这个号的命令里没有独立登录空间目录，没东西可清";
+    if (!dir) purgeSkipped = "这个号用的是本机现成登录态，没分过独立目录，没东西可清";
     else if (!isUnderRoot(dir, root) || dir.replace(/[\\/]+$/, "").toLowerCase() === root.toLowerCase())
       purgeSkipped = "这个号的目录不在工作台登录空间根下，为防误删没有动它";
     else if (!existsSync(dir)) purgeSkipped = "目录本来就不存在";

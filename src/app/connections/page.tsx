@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { accountColor } from "@/lib/account-color";
 
 type ConnectionAccount = {
   id: number;
@@ -65,13 +66,21 @@ const PROBE_TIP: Record<string, string> = {
   none: "这个号是手写命令、没带独立登录空间参数，没法自检",
 };
 
-/** 多号登录空间的五条如实边界（悬停在“边界”那行上看） */
+/** 多号登录空间的如实边界（悬停在“边界”那行上看） */
 const BOUNDARY_TIP =
+  "⓪ 登录态有两种来源：标「本机」的号直接用你浏览器/程序里已经登好的身份，不用重登，但它和主窗口是同一个身份；标「独立」的号自己一份目录，第一次要登一次，之后免密。卡上第一个号默认本机、第二个号起默认独立。\n" +
   "① 一个号只在一个登录空间长期活着：同一个号在两处同时在线，后登录的那份会把先前那份顶掉（刷新令牌轮转）。\n" +
   "② 第三方授权（Google/GitHub 之类）点登录时可能跳到你主浏览器窗口，跳回来就对不上号；这类平台优先用该号目录里已登录的入口直接进。\n" +
   "③ 不要往号自己的命令里加自动化参数；工作台只靠 --user-data-dir 约定隔离数据目录，额外参数容易把启动搞坏。\n" +
   "④ IP 与设备指纹这一层我们不隔离：多个号在同一台机器、同一个网络里仍是同源。真要防关联请用专业方案，工作台不做。\n" +
-  "⑤ 登录空间根目录默认 E:/AI工具Profile（没 E 盘退到 LOCALAPPDATA），可用环境变量 WORKBENCH_PROFILE_ROOT 改到本地固定盘；E 盘若是同步盘/移动盘，登录态等于被同步出去了。";
+  "⑤ 登录空间根目录默认 E:/AI工具Profile（没 E 盘退到 LOCALAPPDATA），可用环境变量 WORKBENCH_PROFILE_ROOT 改到本地固定盘；E 盘若是同步盘/移动盘，登录态等于被同步出去了。\n" +
+  "⑥ 行首那个色点是这个号的门牌色（按号 id 算出来，永远不变），桌面快捷方式的图标用它同一个色；多窗口分不清时，对色比读名字快。";
+
+/**
+ * 这个号是不是独立登录空间：只看命令里有没有我们分出去的 --user-data-dir。
+ * 客户端不拿 fs，所以不引用 launch-profile（那里进了 node:fs，拉到客户端会报错），就地判磁盘事实。
+ */
+const isIsolatedCmd = (cmd: string) => /--user-data-dir=/i.test(String(cmd ?? ""));
 
 const CATEGORY_COLORS: Record<string, string> = {
   coding: "bg-blue-50 text-blue-700",
@@ -103,10 +112,11 @@ export default function ConnectionsPage() {
   const [filter, setFilter] = useState("all");
   const [error, setError] = useState("");
   const [acctOpen, setAcctOpen] = useState<number | null>(null);
-  const [acctForm, setAcctForm] = useState({ label: "", cmd: "" });
+  const [acctForm, setAcctForm] = useState({ label: "", cmd: "", mode: "reuse" as "reuse" | "isolated" });
   const [acctHint, setAcctHint] = useState("");
   const [acctAdv, setAcctAdv] = useState(false);
   const [acctProbe, setAcctProbe] = useState<Record<string, string>>({}); // 切号自检结果（M36.1）
+  const [acctLnk, setAcctLnk] = useState<Record<string, string>>({}); // 本次建过的桌面门牌（M36.2）
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [sceneEdit, setSceneEdit] = useState<{ id: number | null; name: string; items: string[] } | null>(null);
   const [rotateCursor, setRotateCursor] = useState<Record<number, number>>({});
@@ -171,7 +181,8 @@ export default function ConnectionsPage() {
   }
 
   function toggleAcct(c: Connection) {
-    setAcctForm({ label: "", cmd: "" });
+    // 默认值跟服务端的规则一致：卡上没号就用本机现成登录态，已经有号了就隔离
+    setAcctForm({ label: "", cmd: "", mode: c.accounts.length >= 1 ? "isolated" : "reuse" });
     setAcctHint("");
     setAcctAdv(false);
     setError("");
@@ -242,6 +253,39 @@ export default function ConnectionsPage() {
     load();
   }
 
+  /**
+   * 桌面门牌（M36.2）：给这个号在桌面立一个带它自己配色的快捷方式。
+   * 双击它等价于在这儿点一次 ▶（它回头调 launch API），所以审计日志一分不少；
+   * 代价是工作台得开着，没开着它会弹窗告诉你而不是静默失败。
+   */
+  async function makeShortcut(a: ConnectionAccount) {
+    setError("");
+    setAcctHint("");
+    const res = await fetch(`/api/accounts/${a.id}/shortcut`, { method: "POST" });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) { setError(j.error ?? "桌面快捷方式没建起来"); return; }
+    setAcctLnk((prev) => ({ ...prev, [a.id]: j.displayName }));
+    setAcctHint(
+      `桌面上已立好门牌：${j.displayName}（${j.color?.name ?? ""}色）\n` +
+        "双击它就是在这里点一次 ▶；工作台没开着的话它会弹窗告诉你，不会静默没反应。"
+    );
+  }
+
+  async function undoShortcut(a: ConnectionAccount) {
+    if (!window.confirm(`撤掉桌面上「${acctLnk[a.id] ?? "这个号的"}」快捷方式？\n只删快捷方式和它的图标，登录空间里的东西一个不动。`)) return;
+    setError("");
+    setAcctHint("");
+    const res = await fetch(`/api/accounts/${a.id}/shortcut`, { method: "DELETE" });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) { setError(j.error ?? "撤销失败"); return; }
+    setAcctLnk((prev) => {
+      const next = { ...prev };
+      delete next[a.id];
+      return next;
+    });
+    setAcctHint(j.removed ? `已撤掉桌面上的 ${j.fileName}` : j.note ?? "本来就没有可撤的");
+  }
+
   async function addAccount(c: Connection) {
     if (!acctForm.label.trim()) { setError("账号名称是必填项"); return; }
     setError("");
@@ -249,20 +293,22 @@ export default function ConnectionsPage() {
     const res = await fetch(`/api/connections/${c.id}/accounts`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ label: acctForm.label, launchCommand: acctForm.cmd }),
+      body: JSON.stringify({ label: acctForm.label, launchCommand: acctForm.cmd, mode: acctForm.mode }),
     });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) { setError(j.error ?? "添加失败"); return; }
     setAcctHint(
       j.auto
-        ? `已给「${j.label}」分到独立登录空间：${j.profileDir}\n第一次点开后自己登录一次，以后点 ▶ 就是登录态。`
+        ? j.mode === "isolated"
+          ? `已给「${j.label}」分到独立登录空间：${j.profileDir}\n第一次点开后自己登录一次，以后点 ▶ 就是登录态。`
+          : `已给「${j.label}」接上本机现成的登录态，不用重登。\n它和你浏览器里是同一个身份，所以这张卡再加第二个号时会改用独立空间。`
         : `已按你手写的命令添加「${j.label}」。`
     );
-    setAcctForm({ label: "", cmd: "" });
+    setAcctForm({ label: "", cmd: "", mode: c.accounts.length >= 1 ? "isolated" : "reuse" });
     load();
   }
 
-  /** M36：卡片换了程序路径或入口网址后，重建该号的登录空间命令（不用手打） */
+  /** M36：卡片换了程序路径或入口网址后重建这个号的启动命令（不用手打）；登录态来源沿用原来的 */
   async function regenAccount(a: ConnectionAccount) {
     setError("");
     setAcctHint("");
@@ -273,7 +319,11 @@ export default function ConnectionsPage() {
     });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) { setError(j.error ?? "重建失败"); return; }
-    setAcctHint(`「${j.label}」的登录空间命令已按卡片现状重建：${j.profileDir}`);
+    setAcctHint(
+      j.mode === "isolated"
+        ? `「${j.label}」的命令已按卡片现状重建，仍是独立登录空间：${j.profileDir}`
+        : `「${j.label}」的命令已按卡片现状重建，仍复用本机现成登录态（没有独立目录）`
+    );
     load();
   }
 
@@ -514,30 +564,50 @@ export default function ConnectionsPage() {
             {c.tags && <p className="mt-1 text-xs text-slate-400">{c.tags}</p>}
             {acctOpen === c.id && (
               <div className="mt-2 rounded-lg border bg-slate-50 p-2">
-                <div className="text-xs font-medium text-slate-500">账号条目（每个号一份独立登录空间，点 ▶ 直接切过去）</div>
+                <div className="text-xs font-medium text-slate-500">账号条目（标「本机」的用现成登录态、标「独立」的用自己那份目录，点 ▶ 直接切过去）</div>
                 <div className="mt-0.5 text-xs text-slate-400">
-                  首次点开后自己登录一次，之后免密；工作台只存启动命令，<span className="text-slate-500">不存也不读密码</span>。
+                  多数平台就一个号，选本机就够、不用重登；同一个平台要第二个号才需要独立空间（第一次登一次）。工作台只存启动命令，<span className="text-slate-500">不存也不读密码</span>。
                 </div>
                 <div className="mt-0.5 text-xs text-slate-400" title={BOUNDARY_TIP}>
-                  边界：一个号只在一个登录空间长期活着；第三方授权可能跳回主窗口；IP/设备指纹这一层不隔离（悬看详情）。
+                  边界：一个号只在一个登录空间长期活着；第三方授权可能跳回主窗口；IP/设备指纹这一层不隔离；行首色点与桌面图标同色（悬看详情）。
                 </div>
                 {c.accounts.length === 0 && <div className="mt-1 text-xs text-slate-400">还没有号，在下面起个名字就能加</div>}
                 {acctHint && <div className="mt-1 whitespace-pre-line break-all text-xs text-emerald-700">{acctHint}</div>}
                 {error && <div className="mt-1 text-xs text-red-600">{error}</div>}
                 {c.accounts.map((a) => (
                   <div key={a.id} className="mt-1 flex items-center gap-1">
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-black/10"
+                      style={{ backgroundColor: accountColor(a.id, a.label).hex }}
+                      title={`门牌色：${accountColor(a.id, a.label).name}（按号 id 算出来、永远不变；桌面快捷方式的图标用它同一个色）`}
+                    />
                     <span className="min-w-0 flex-1 truncate text-xs" title={a.launchCommand || a.notes}>{a.label}</span>
+                    <span
+                      className={`shrink-0 rounded px-1 text-[10px] ${isIsolatedCmd(a.launchCommand) ? "bg-violet-50 text-violet-600" : "bg-emerald-50 text-emerald-700"}`}
+                      title={isIsolatedCmd(a.launchCommand)
+                        ? "独立登录空间：这个号自己一份 --user-data-dir，第一次要登录一次，之后免密"
+                        : "复用本机现成登录态：不用重登，但它和你浏览器里的其它标签是同一个身份"}
+                    >{isIsolatedCmd(a.launchCommand) ? "独立" : "本机"}</span>
                     {acctProbe[a.id] && (
                       <span className="shrink-0" title={PROBE_TIP[acctProbe[a.id]] ?? ""}>{PROBE_ICON[acctProbe[a.id]] ?? ""}</span>
                     )}
                     <button onClick={() => launchAccount(a)}
-                      title={a.launchCommand ? `切到「${a.label}」：用它自己的登录空间启动` : "该号还没有启动命令"}
+                      title={a.launchCommand
+                        ? (isIsolatedCmd(a.launchCommand) ? `切到「${a.label}」：用它自己的登录空间启动` : `打开「${a.label}」：直接用本机现成的登录态`)
+                        : "该号还没有启动命令"}
                       className="rounded bg-blue-600 px-1.5 py-0.5 text-xs text-white hover:bg-blue-700">▶</button>
-                    <button onClick={() => openAccountDir(a)} title="在资源管理器里打开这个号的登录空间目录"
-                      className="text-xs text-slate-300 hover:text-blue-600">📁</button>
-                    <button onClick={() => stopAccount(a)} title="只结束命令行里带着这个号目录的进程，不按程序名杀"
-                      className="text-xs text-slate-300 hover:text-red-500">■</button>
-                    <button onClick={() => regenAccount(a)} title="按卡片现在的程序路径/入口网址重建这个号的登录空间命令"
+                    {isIsolatedCmd(a.launchCommand) && (
+                      <button onClick={() => openAccountDir(a)} title="在资源管理器里打开这个号的登录空间目录"
+                        className="text-xs text-slate-300 hover:text-blue-600">📁</button>
+                    )}
+                    {isIsolatedCmd(a.launchCommand) && (
+                      <button onClick={() => stopAccount(a)} title="只结束命令行里带着这个号目录的进程，不按程序名杀"
+                        className="text-xs text-slate-300 hover:text-red-500">■</button>
+                    )}
+                    <button onClick={() => (acctLnk[a.id] ? undoShortcut(a) : makeShortcut(a))}
+                      title={acctLnk[a.id] ? `已建：${acctLnk[a.id]}，点一下撤掉` : "在桌面上给这个号立一个同色图标的快捷方式（双击等于点 ▶）"}
+                      className={acctLnk[a.id] ? "text-xs text-blue-600 hover:text-blue-800" : "text-xs text-slate-300 hover:text-blue-600"}>🔗</button>
+                    <button onClick={() => regenAccount(a)} title="按卡片现在的程序路径/入口网址重建启动命令（登录态来源沿用这个号原来的，不会把登好的号踢成空的）"
                       className="text-xs text-slate-300 hover:text-blue-600">↻</button>
                     <button onClick={() => deleteAccount(a)} title="删这条号，下一步会问你要不要连登录空间目录一起清"
                       className="text-xs text-slate-300 hover:text-red-500">删</button>
@@ -549,9 +619,24 @@ export default function ConnectionsPage() {
                   <button onClick={() => addAccount(c)}
                     className="shrink-0 rounded bg-slate-900 px-2 py-1 text-xs text-white hover:bg-slate-700">+ 加一个号</button>
                   <button onClick={() => setAcctAdv((v) => !v)}
-                    title="留空则由服务端生成独立登录空间命令；确有必要时才手写"
+                    title="留空则由服务端生成启动命令；确有必要时才手写"
                     className="shrink-0 rounded border px-1.5 py-1 text-xs text-slate-400 hover:text-slate-600">高级 {acctAdv ? "▴" : "▾"}</button>
                 </div>
+                <div className="mt-1.5 flex items-center gap-1.5 text-xs">
+                  <span className="shrink-0 text-slate-400">登录态</span>
+                  {(["reuse", "isolated"] as const).map((m) => (
+                    <button key={m} onClick={() => setAcctForm({ ...acctForm, mode: m })}
+                      title={m === "reuse"
+                        ? "用本机现成（免重登）：直接用本机浏览器/程序里已经登好的身份"
+                        : "独立空间（首登一次）：分一个独立目录，第一次要自己登录一次"}
+                      className={`shrink-0 rounded border px-1.5 py-0.5 ${acctForm.mode === m ? "border-blue-500 bg-blue-50 text-blue-700" : "text-slate-400 hover:text-slate-600"}`}>
+                      {m === "reuse" ? "本机现成" : "独立空间"}
+                    </button>
+                  ))}
+                </div>
+                {c.accounts.length >= 1 && acctForm.mode === "reuse" && (
+                  <div className="mt-1 text-xs text-amber-600">这张卡已经有号了，再选本机还是同一个身份</div>
+                )}
                 {acctAdv && (
                   <input className="mt-1.5 w-full rounded border px-2 py-1 text-xs" placeholder="手写启动命令（填了就按你写的存，不自动生成）"
                     value={acctForm.cmd} onChange={(e) => setAcctForm({ ...acctForm, cmd: e.target.value })} />

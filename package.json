@@ -8,7 +8,8 @@
     "start": "next start",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "gate": "node scripts/gate.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
