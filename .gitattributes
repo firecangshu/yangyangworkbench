@@ -1,0 +1,26 @@
+# Line endings: both the repository and the working tree use LF.
+# Without this file the repo drifted into a 61 LF / 47 CRLF / 2 mixed mix, which
+# makes editors "silently rewrite" whole sections on every save and inflates diffs.
+* text=auto eol=lf
+
+# Windows batch files must stay CRLF: cmd.exe misparses LF-only scripts
+# (goto/label handling) — this is a real runtime break, not a style preference.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary content is never a line-ending question; mark it so git never converts.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.icns binary
+*.db binary
+*.sqlite binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.zip binary
+
+# Generated lockfile: text (so it stays LF) but the diff is pure noise.
+package-lock.json text eol=lf -diff
